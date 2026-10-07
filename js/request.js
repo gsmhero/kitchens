@@ -23,7 +23,9 @@
   const keyOf = (name, what) => 'request:' + encodeURIComponent(name) + ':' + what;
 
   const users = () => {
-    const extra = load('users', []).filter(u => !SEED_USERS.some(s => s.name === u.name));
+    const known = load('users', []);
+    if (me() && !known.some(u => u.name === me().name)) known.push({ name: me().name }); // e.g. session started before the registry existed
+    const extra = known.filter(u => !SEED_USERS.some(s => s.name === u.name));
     return [...SEED_USERS, ...extra.map(u => ({ name: u.name, role: 'Member' }))];
   };
   const formOf = name => load(keyOf(name, 'form'), null) || FF().template(TEMPLATE);
@@ -51,7 +53,7 @@
       ${list.map(u => `
         <button class="card pick-card ${u.name === target ? 'sel' : ''}" data-rq="pick" data-name="${esc(u.name)}">
           <span class="avatar">${esc(u.name[0].toUpperCase())}</span>
-          <b>${esc(u.name)}</b><small>${esc(u.role)}</small>
+          <b>${esc(u.name)}${user && user.name === u.name ? ' (you)' : ''}</b><small>${esc(u.role)}${isCustom(u.name) ? ' · custom form' : ''}</small>
         </button>`).join('')}
     </div>
     ${sent ? `<div class="notice ok">✔ Your request was sent to <b>${esc(sent)}</b>. They will see it in their profile.</div>` : ''}
@@ -63,7 +65,7 @@
         <label><span>Your name <b class="req">*</b></span><input name="__name" required value="${user ? esc(user.name) : ''}"></label>
         <label><span>Phone or email <b class="req">*</b></span><input name="__contact" required></label>
         <hr>
-        <h3>${esc(form.name)}</h3>
+        <h3>${esc(form.name)} <span class="count">${isCustom(t.name) ? 'customised by ' + esc(t.name) : 'default form'}</span></h3>
         ${form.fields.map(fl => fieldRow(fl)).join('')}
         <div class="actions"><button class="btn primary">Send request</button></div>
       </form>`;
