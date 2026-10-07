@@ -101,8 +101,7 @@
     'About Us': () => GUEST.about(),
     'Blog': () => GUEST.blog(),
     // 'Price offers' lives in js/offers.js
-    'Costs': () => `<h1>Costs</h1><div class="grid g3">
-      ${[['Materials', 420000], ['Salaries', 310000], ['Rent & utilities', 85000]].map(r => `<div class="card kpi"><div class="l">${r[0]}</div><div class="n">${fmt(r[1])} ₽</div></div>`).join('')}</div>`,
+    // 'Costs' lives in js/costs.js
     'ToDo': () => {
       const tasks = store.get('todo') || [['Call supplier about MDF', false], ['Send offer #89', false], ['Check Assembly team schedule', true]];
       return `<h1>ToDo</h1><div class="card"><ul class="clean todo" id="todoList">

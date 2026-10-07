@@ -9,7 +9,9 @@
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const uid = () => Math.random().toString(36).slice(2, 9);
-  const modules = () => window.Kitchens.TABS.filter(t => t !== 'Branches and Roles');
+  // extra permission rows that are not tabs: "Edit" lets an employee add situation costs (they see only their own entries)
+  const COSTS_SIT = 'Costs: add situational';
+  const modules = () => [...window.Kitchens.TABS.filter(t => t !== 'Branches and Roles'), COSTS_SIT];
 
   /* ---------- Data ---------- */
   const defaultBranches = () => [
@@ -21,20 +23,28 @@
   const defaultRoles = () => {
     const m = modules();
     const only = (list, lv = 2) => t => list.includes(t) ? lv : (t === 'Dashboard' ? 1 : 0);
-    return [
+    const list = [
       { id: 'r1', name: 'Owner', locked: true, users: 1, perms: level(m, 2) },
       { id: 'r2', name: 'Manager', users: 2, perms: level(m, t => ['Costs', 'Agents', 'Branches and Roles'].includes(t) ? 1 : 2) },
       { id: 'r3', name: 'Designer', users: 2, perms: level(m, only(['Flow', 'Forms', 'Product Catalogue', 'Price offers', 'Knowledge'])) },
       { id: 'r4', name: 'Carpenter', users: 6, perms: level(m, only(['Flow', 'Warehouse', 'Knowledge', 'ToDo'])) },
       { id: 'r5', name: 'Installer', users: 3, perms: level(m, only(['Flow', 'ToDo'], 1)) }
     ];
+    list.forEach(r => { r.perms[COSTS_SIT] = SIT_DEFAULT(r); });
+    return list;
   };
+  // workshop and field roles buy materials / travel, so they may add situation costs by default
+  const SIT_DEFAULT = r => r.locked || ['r2', 'r4', 'r5'].includes(r.id) ? 2 : 0;
 
   let branches, roles; // initialised lazily: window.Kitchens (TABS) is not ready when this file loads
   const init = () => {
     if (branches) return;
     branches = load('branches', null) || defaultBranches();
     roles = load('roles', null) || defaultRoles();
+    // roles saved before an extra permission row existed get a sensible default for it
+    let changed = false;
+    roles.forEach(r => { if (r.perms[COSTS_SIT] === undefined) { r.perms[COSTS_SIT] = SIT_DEFAULT(r); changed = true; } });
+    if (changed) save('roles', roles);
   };
   const persist = () => { save('branches', branches); save('roles', roles); };
   const redraw = () => window.Kitchens.render();
@@ -46,7 +56,18 @@
     list: () => { init(); return roles.map(r => ({ id: r.id, name: r.name, locked: !!r.locked })); },
     add: name => { init(); roles.push({ id: uid(), name, users: 0, perms: level(modules(), 0) }); persist(); },
     rename: (id, name) => { init(); const r = roles.find(x => x.id === id); if (r) { r.name = name; persist(); } },
-    remove: id => { init(); const r = roles.find(x => x.id === id); if (r && !r.locked) { roles = roles.filter(x => x.id !== id); persist(); } }
+    remove: id => { init(); const r = roles.find(x => x.id === id); if (r && !r.locked) { roles = roles.filter(x => x.id !== id); persist(); } },
+    // access level (0 none, 1 view, 2 edit) of a user for a section / permission row.
+    // A user with no staff record (e.g. the demo login) is treated as the owner so the prototype stays usable.
+    level: (user, key) => {
+      init();
+      if (!user) return 0;
+      const roleId = user.roleId || (window.KitchensStaff && window.KitchensStaff.roleIdOf(user.name));
+      if (!roleId) return 2;
+      const r = roles.find(x => x.id === roleId);
+      return !r ? 0 : r.locked ? 2 : (r.perms[key] || 0);
+    },
+    sitKey: COSTS_SIT
   };
 
   /* ---------- Page ---------- */
@@ -97,7 +118,8 @@
             }).join('')}</tr>`).join('')}
         </tbody>
       </table></div>
-      <p class="hint">Changes are saved automatically in this browser. Owner always has full access.</p>
+      <p class="hint">Changes are saved automatically in this browser. Owner always has full access.
+        <b>Costs</b>: View sees all costs, Edit also manages constant costs. <b>Costs: add situational</b>: Edit lets the role add situation costs (they see only their own entries unless they also have access to Costs).</p>
     </div>`;
   };
 
