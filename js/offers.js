@@ -42,6 +42,27 @@
       db.offers.push(mk('Ivanov', 'ivanov@example.com', [line(prods[0]), line(prods[2], 4)], 'sent', 5, 10));
       db.offers.push(mk('Petrova', '+7 900 000-00-00', [line(prods[1])], 'draft', 0, 14));
     }
+    if (prods.length >= 4) { // demo history: accepted offers over the last months, so the dashboard has revenue to show
+      const when = (k, day) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k); d.setDate(k === 0 ? Math.min(day, new Date().getDate()) : day); d.setHours(12); return d.getTime(); };
+      const acc = (k, day, client, spec) => {
+        const o = { id: uid(), no: noOf(++db.counter), clientName: client, contact: client.toLowerCase() + '@example.com', requestId: '', items: spec.map(([i, q]) => line(prods[i], q)), discount: 0, notes: '',
+          validUntil: plusDays(-5), status: 'accepted', createdBy: 'System' };
+        o.at = o.sentAt = o.acceptedAt = when(k, day);
+        db.offers.push(o);
+      };
+      acc(0, 3, 'Smirnova', [[0, 1]]);
+      acc(1, 8, 'Orlov', [[1, 1]]); acc(1, 21, 'Volkova', [[0, 1], [2, 4]]);
+      acc(2, 5, 'Lebedev', [[1, 1], [3, 10]]); acc(2, 19, 'Egorov', [[0, 1], [2, 2]]);
+      acc(3, 12, 'Frolova', [[1, 1], [3, 5]]); acc(3, 25, 'Zaitsev', [[0, 1]]);
+      acc(4, 9, 'Popov', [[0, 1], [2, 6]]);
+      acc(5, 15, 'Sidorov', [[1, 1]]);
+      const rej = { id: uid(), no: noOf(++db.counter), clientName: 'Kuznetsov', contact: 'kuznetsov@example.com', requestId: '', items: [line(prods[1])], discount: 0, notes: '', validUntil: plusDays(-20), status: 'rejected', createdBy: 'System' };
+      rej.at = rej.sentAt = when(1, 14); db.offers.push(rej);
+      [[2, 'Medvedev'], [3, 'Sokolov']].forEach(([k, n]) => { // a few lost offers so the demo win rate is realistic
+        const r = { ...rej, id: uid(), no: noOf(++db.counter), clientName: n, contact: n.toLowerCase() + '@example.com', items: [line(prods[0])] };
+        r.at = r.sentAt = when(k, 17); db.offers.push(r);
+      });
+    }
     persist();
   }
 
@@ -70,6 +91,7 @@
   /* API for other pages (the case page links offers as a block) */
   const publicOffer = o => { const t = totals(o), s = statusOf(o);
     return { id: o.id, no: o.no, clientName: o.clientName, contact: o.contact, requestId: o.requestId, validUntil: o.validUntil, discount: o.discount, notes: o.notes,
+      date: o.acceptedAt || o.sentAt || o.at, acceptedAt: o.acceptedAt || 0, // "date" = when the offer was accepted (else sent / created); used by the dashboard
       status: s, statusLabel: STATUS[s][0], statusClass: STATUS[s][1], sub: t.sub, disc: t.disc, total: t.total,
       items: o.items.map(it => ({ name: it.name, desc: it.desc, qty: it.qty, price: it.price, discount: it.discount, lt: lineTotal(it) })) }; };
   window.KitchensOffers = {
@@ -274,6 +296,8 @@
         if (!draft.clientName.trim()) { alert('Please enter the client name.'); return; }
         if ((draft.status === 'sent' || draft.status === 'accepted') && !draft.items.length) { alert('Add at least one item before marking the offer as ' + draft.status + '.'); return; }
         if (draft.status !== 'draft' && !draft.sentAt) draft.sentAt = Date.now();
+        if (draft.status === 'accepted' && !draft.acceptedAt) draft.acceptedAt = Date.now(); // revenue is counted from this date
+        if (draft.status !== 'accepted') draft.acceptedAt = 0;
         const saved = JSON.parse(JSON.stringify(draft)); delete saved._editing;
         if (isNew) { saved.no = noOf(++db.counter); db.offers.push(saved); isNew = false; draft.no = saved.no; }
         else db.offers[db.offers.findIndex(x => x.id === saved.id)] = saved;

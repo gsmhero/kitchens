@@ -69,26 +69,7 @@
 
   /* ---------- Registered tab pages ---------- */
   const TAB_PAGES = {
-    'Dashboard': () => {
-      const total = ORDERS.reduce((a, o) => a + o.sum, 0);
-      const inStage = i => ORDERS.filter(o => stageIndex(o.stage) === i).length;
-      const maxN = Math.max(...stages.map((_, i) => inStage(i)), 1);
-      return `
-      <h1>Dashboard</h1><p class="sub">Overview of production and finance.</p>
-      <div class="grid g4">
-        <div class="card kpi"><div class="l">Active orders</div><div class="n">${ORDERS.length}</div><div class="d up">+2 this week</div></div>
-        <div class="card kpi"><div class="l">Portfolio</div><div class="n">${fmt(total)} ₽</div><div class="d up">+8%</div></div>
-        <div class="card kpi"><div class="l">Delayed</div><div class="n">${ORDERS.filter(o => o.status === 'bad').length}</div><div class="d down">needs attention</div></div>
-        <div class="card kpi"><div class="l">Open tasks</div><div class="n">9</div><div class="d">3 due today</div></div>
-      </div>
-      <div class="grid g2">
-        <div class="card"><h3>Orders by stage</h3>
-          <div class="bars">${stages.map((s, i) => { const c = inStage(i); return `<div style="height:${c / maxN * 100}%"><span>${s.name.replace(/[<>&]/g, '')} (${c})</span></div>`; }).join('')}</div></div>
-        <div class="card"><h3>Latest orders</h3><table>
-          <tr><th>#</th><th>Client</th><th>Stage</th><th>Sum</th><th>Status</th></tr>
-          ${ORDERS.map(o => `<tr><td>${o.id}</td><td>${o.client}</td><td>${stages[stageIndex(o.stage)].name.replace(/[<>&]/g, '')}</td><td>${fmt(o.sum)}</td><td>${pill(o.status)}</td></tr>`).join('')}</table></div>
-      </div>`;
-    },
+    // 'Dashboard' lives in js/dashboard.js
     // 'Flow' lives in js/flow.js
     'Archive': () => `<h1>Archive</h1><p class="sub">Completed orders.</p><div class="card"><table>
       <tr><th>#</th><th>Client</th><th>Closed</th><th>Sum</th></tr>
