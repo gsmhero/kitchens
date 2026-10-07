@@ -91,6 +91,87 @@
     </svg>`;
   }
 
+  /* ---------- top employees: revenue from accepted offers ---------- */
+  let period = 'quarter';
+  const PERIODS = { month: 'This month', quarter: 'Last 3 months', year: 'This year', all: 'All time' };
+  const inPeriod = ts => {
+    const now = new Date(), d = new Date(ts);
+    if (period === 'all') return true;
+    if (period === 'month') return key(d) === key(now);
+    if (period === 'year') return d.getFullYear() === now.getFullYear();
+    return d >= new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  };
+  const personLink = name => { const p = window.KitchensProfiles.get(name); return p ? `<a class="link" href="${esc(window.KitchensProfiles.url(name))}">${esc(p.name || name)}</a>` : esc(name); };
+
+  function topEmployees(c) {
+    // an offer belongs to the employee the linked request was sent to; otherwise to the person who created it
+    const reqs = window.KitchensRequest.all();
+    const owner = o => (o.requestId && (reqs.find(x => x.sub.id === o.requestId) || {}).to) || o.createdBy || 'Unknown';
+    const rows = {};
+    c.offers.filter(o => ['accepted', 'rejected', 'expired'].includes(o.status) && inPeriod(o.date)).forEach(o => {
+      const r = rows[owner(o)] || (rows[owner(o)] = { name: owner(o), rev: 0, won: 0, decided: 0 });
+      r.decided++;
+      if (o.status === 'accepted') { r.won++; r.rev += o.total; }
+    });
+    const list = Object.values(rows).sort((a, b) => b.rev - a.rev || b.won - a.won);
+    const total = list.reduce((a, r) => a + r.rev, 0), max = list.length ? Math.max(list[0].rev, 1) : 1, medal = ['🥇', '🥈', '🥉'];
+    return `
+    <div class="card">
+      <div class="section-head" style="margin-top:0"><h3 style="margin:0">Top employees by revenue from offers</h3>
+        <select id="dbPeriod" aria-label="Period">${Object.entries(PERIODS).map(([k, l]) => `<option value="${k}" ${k === period ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="matrix-wrap"><table class="top-emp"><thead><tr><th></th><th>Employee</th><th class="num">Revenue</th><th>Share of revenue</th><th class="num">Accepted</th><th class="num">Average offer</th><th class="num">Win rate</th></tr></thead><tbody>
+        ${list.map((r, i) => `<tr>
+          <td class="rank">${r.rev > 0 && i < 3 ? medal[i] : i + 1}</td>
+          <td><b>${personLink(r.name)}</b></td>
+          <td class="num"><b>${money(r.rev)}</b></td>
+          <td><div class="share"><div><i style="width:${r.rev / max * 100}%"></i></div><span>${total ? Math.round(r.rev / total * 100) : 0}%</span></div></td>
+          <td class="num">${r.won}</td>
+          <td class="num">${r.won ? money(r.rev / r.won) : '—'}</td>
+          <td class="num">${r.decided ? Math.round(r.won / r.decided * 100) + '%' : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="sub">No decided offers in this period.</td></tr>'}
+      </tbody>${list.length ? `<tfoot><tr><th></th><th>Total</th><th class="num">${money(total)}</th><th></th><th class="num">${list.reduce((a, r) => a + r.won, 0)}</th><th></th><th></th></tr></tfoot>` : ''}</table></div>
+      <p class="hint">Revenue of accepted offers, by the employee the request was sent to (or who created the offer). Win rate = accepted ÷ decided (accepted, rejected, expired).</p>
+    </div>`;
+  }
+
+  /* ---------- ToDo report and statuses ---------- */
+  function todoReport() {
+    if (window.KitchensRoles.level(K().getUser(), 'ToDo') < 1) return '';
+    const tasks = window.KitchensTodo.list(), now = Date.now(), DAY = 86400000, today = new Date().toISOString().slice(0, 10), inWeek = new Date(now + 7 * DAY).toISOString().slice(0, 10);
+    const open = tasks.filter(t => t.status !== 'done'), done = tasks.filter(t => t.status === 'done');
+    const cnt = s => tasks.filter(t => t.status === s).length, overdue = open.filter(t => t.overdue);
+    const pct = n => tasks.length ? Math.round(n / tasks.length * 100) : 0;
+    const STAT = [['todo', 'To do'], ['doing', 'In progress'], ['done', 'Done']];
+    const people = [...new Set(tasks.map(t => t.assignee || ''))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b));
+    const rows = people.map(p => { const mine = tasks.filter(t => (t.assignee || '') === p), d = mine.filter(t => t.status === 'done').length;
+      return { p, todo: mine.filter(t => t.status === 'todo').length, doing: mine.filter(t => t.status === 'doing').length, done: d, late: mine.filter(t => t.overdue).length, rate: Math.round(d / mine.length * 100) }; });
+    const PR = { urgent: 'Urgent', high: 'High', normal: 'Normal', low: 'Low' };
+    return `
+    <div class="section-head"><h2>Tasks <span class="count">${tasks.length} total</span></h2><a class="link" href="#tab/todo">Open ToDo →</a></div>
+    <div class="grid g4">
+      <div class="card kpi"><div class="l">Open tasks</div><div class="n">${open.length}</div><div class="d sub">${open.filter(t => t.due === today).length} due today · ${open.filter(t => t.due > today && t.due <= inWeek).length} this week</div></div>
+      <div class="card kpi"><div class="l">Overdue</div><div class="n ${overdue.length ? 'down' : ''}">${overdue.length}</div><div class="d sub">${overdue.length ? 'need attention' : 'all on time'}</div></div>
+      <div class="card kpi"><div class="l">Done — last 7 days</div><div class="n up">${done.filter(t => t.doneAt > now - 7 * DAY).length}</div><div class="d sub">${done.filter(t => t.doneAt > now - 30 * DAY).length} in 30 days</div></div>
+      <div class="card kpi"><div class="l">Completion rate</div><div class="n">${pct(done.length)}%</div><div class="d sub">${done.length} of ${tasks.length} tasks done</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Statuses</h3>
+        <div class="stat-bar" role="img" aria-label="Tasks by status">${STAT.map(([k]) => cnt(k) ? `<i class="s-${k}" style="width:${cnt(k) / tasks.length * 100}%" title="${STAT.find(x => x[0] === k)[1]}: ${cnt(k)}">${cnt(k)}</i>` : '').join('')}</div>
+        <div class="stat-legend">${STAT.map(([k, l]) => `<span><i class="s-${k}"></i>${l}: <b>${cnt(k)}</b> (${pct(cnt(k))}%)</span>`).join('')}</div>
+        <h4 class="mini">Open tasks by priority</h4>
+        <div class="chips">${Object.entries(PR).map(([k, l]) => `<span class="chip pr-${k}">${l}: <b>${open.filter(t => t.priority === k).length}</b></span>`).join('')}</div>
+        <h4 class="mini">Overdue tasks</h4>
+        ${overdue.sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5).map(t => `<div class="late-row"><b>${esc(t.title)}</b><span class="sub">${esc(t.assignee || 'Unassigned')} · ${Math.max(1, Math.floor((now - new Date(t.due + 'T12:00:00')) / DAY))} d late</span></div>`).join('') || '<p class="sub">No overdue tasks.</p>'}
+      </div>
+      <div class="card">
+        <h3>By employee</h3>
+        <div class="matrix-wrap"><table><thead><tr><th>Employee</th><th class="num">To do</th><th class="num">In progress</th><th class="num">Done</th><th class="num">Overdue</th><th class="num">Done %</th></tr></thead><tbody>
+          ${rows.map(r => `<tr><td>${r.p ? personLink(r.p) : '<span class="sub">Unassigned</span>'}</td><td class="num">${r.todo}</td><td class="num">${r.doing}</td><td class="num">${r.done}</td><td class="num ${r.late ? 'down' : ''}">${r.late ? '<b>' + r.late + '</b>' : 0}</td><td class="num">${r.rate}%</td></tr>`).join('') || '<tr><td colspan="6" class="sub">No tasks yet.</td></tr>'}
+        </tbody></table></div>
+      </div>
+    </div>`;
+  }
+
   /* ---------- sections ---------- */
   const delta = (a, b) => b ? ((a - b) / Math.abs(b) * 100) : null;
   const pct = d => d === null ? '' : `<span class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(d))}% vs last month</span>`;
@@ -119,6 +200,8 @@
       <div class="card kpi"><div class="l">Profit this year</div><div class="n ${c.ytd < 0 ? 'down' : 'up'}">${signed(c.ytd)}</div><div class="d sub">from ${esc(c.ytdFrom)} · ${c.accepted.length} accepted offers</div></div>
     </div>
     ${noRev ? '<div class="notice">No revenue yet: revenue is counted when a <a class="link" href="#tab/price-offers">price offer</a> is marked <b>Accepted</b>.</div>' : ''}
+
+    ${topEmployees(c)}
 
     <div class="card">
       <div class="section-head" style="margin-top:0"><h3 style="margin:0">Revenue, costs and profit <span class="count">last ${HIST} months + ${FUT}-month forecast</span></h3>
@@ -179,6 +262,9 @@
     <h1>Dashboard</h1>
     <p class="sub">${fin ? 'Revenue, costs, profit and the forecast, calculated from your price offers and costs.' : 'Overview of the work in progress.'}</p>
     ${fin ? financial() : '<div class="notice">Financial statistics are available to roles with access to Costs. Ask the owner in Branches and Roles.</div>'}
+    ${todoReport()}
     ${pipeline()}`;
   };
+
+  document.addEventListener('change', e => { if (e.target.id === 'dbPeriod') { period = e.target.value; K().render(); } });
 })();

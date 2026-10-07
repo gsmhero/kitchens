@@ -148,6 +148,12 @@
 
   const bodyHtml = () => { const list = visible(); return view === 'list' ? listHtml(list) : boardHtml(list); };
 
+  // tasks as plain data for the dashboard report
+  window.KitchensTodo = {
+    list: () => { init(); return db.tasks.map(t => ({ id: t.id, no: t.no, title: t.title, status: t.status, priority: t.priority, assignee: t.assignee, due: t.due, doneAt: t.doneAt, at: t.at,
+      overdue: isOverdue(t), checklistDone: t.checklist.filter(c => c.done).length, checklistTotal: t.checklist.length })); }
+  };
+
   window.KitchensPages.ToDo = () => {
     init();
     if (lvl() < 1) return '<h1>ToDo</h1><div class="placeholder">Your role has no access to tasks. Ask the owner to change it in Branches and Roles.</div>';

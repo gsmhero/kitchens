@@ -39,27 +39,27 @@
     if (prods.length >= 2) { // two demo offers so the page is not empty
       const mk = (client, contact, items, status, discount, validIn) => ({ id: uid(), no: noOf(++db.counter), clientName: client, contact, requestId: '', items, discount, notes: 'Price includes delivery within the city. Installation is quoted separately.',
         validUntil: plusDays(validIn), status, createdBy: 'System', at: Date.now() - 3 * 86400000, sentAt: status === 'draft' ? 0 : Date.now() - 2 * 86400000 });
-      db.offers.push(mk('Ivanov', 'ivanov@example.com', [line(prods[0]), line(prods[2], 4)], 'sent', 5, 10));
-      db.offers.push(mk('Petrova', '+7 900 000-00-00', [line(prods[1])], 'draft', 0, 14));
+      db.offers.push(Object.assign(mk('Ivanov', 'ivanov@example.com', [line(prods[0]), line(prods[2], 4)], 'sent', 5, 10), { createdBy: 'A. Smith' }));
+      db.offers.push(Object.assign(mk('Petrova', '+7 900 000-00-00', [line(prods[1])], 'draft', 0, 14), { createdBy: 'B. Jones' }));
     }
     if (prods.length >= 4) { // demo history: accepted offers over the last months, so the dashboard has revenue to show
       const when = (k, day) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k); d.setDate(k === 0 ? Math.min(day, new Date().getDate()) : day); d.setHours(12); return d.getTime(); };
-      const acc = (k, day, client, spec) => {
+      const acc = (k, day, client, spec, by) => {
         const o = { id: uid(), no: noOf(++db.counter), clientName: client, contact: client.toLowerCase() + '@example.com', requestId: '', items: spec.map(([i, q]) => line(prods[i], q)), discount: 0, notes: '',
-          validUntil: plusDays(-5), status: 'accepted', createdBy: 'System' };
+          validUntil: plusDays(-5), status: 'accepted', createdBy: by };
         o.at = o.sentAt = o.acceptedAt = when(k, day);
         db.offers.push(o);
       };
-      acc(0, 3, 'Smirnova', [[0, 1]]);
-      acc(1, 8, 'Orlov', [[1, 1]]); acc(1, 21, 'Volkova', [[0, 1], [2, 4]]);
-      acc(2, 5, 'Lebedev', [[1, 1], [3, 10]]); acc(2, 19, 'Egorov', [[0, 1], [2, 2]]);
-      acc(3, 12, 'Frolova', [[1, 1], [3, 5]]); acc(3, 25, 'Zaitsev', [[0, 1]]);
-      acc(4, 9, 'Popov', [[0, 1], [2, 6]]);
-      acc(5, 15, 'Sidorov', [[1, 1]]);
-      const rej = { id: uid(), no: noOf(++db.counter), clientName: 'Kuznetsov', contact: 'kuznetsov@example.com', requestId: '', items: [line(prods[1])], discount: 0, notes: '', validUntil: plusDays(-20), status: 'rejected', createdBy: 'System' };
+      acc(0, 3, 'Smirnova', [[0, 1]], 'B. Jones');
+      acc(1, 8, 'Orlov', [[1, 1]], 'A. Smith'); acc(1, 21, 'Volkova', [[0, 1], [2, 4]], 'B. Jones');
+      acc(2, 5, 'Lebedev', [[1, 1], [3, 10]], 'A. Smith'); acc(2, 19, 'Egorov', [[0, 1], [2, 2]], 'C. Brown');
+      acc(3, 12, 'Frolova', [[1, 1], [3, 5]], 'B. Jones'); acc(3, 25, 'Zaitsev', [[0, 1]], 'A. Smith');
+      acc(4, 9, 'Popov', [[0, 1], [2, 6]], 'B. Jones');
+      acc(5, 15, 'Sidorov', [[1, 1]], 'A. Smith');
+      const rej = { id: uid(), no: noOf(++db.counter), clientName: 'Kuznetsov', contact: 'kuznetsov@example.com', requestId: '', items: [line(prods[1])], discount: 0, notes: '', validUntil: plusDays(-20), status: 'rejected', createdBy: 'C. Brown' };
       rej.at = rej.sentAt = when(1, 14); db.offers.push(rej);
-      [[2, 'Medvedev'], [3, 'Sokolov']].forEach(([k, n]) => { // a few lost offers so the demo win rate is realistic
-        const r = { ...rej, id: uid(), no: noOf(++db.counter), clientName: n, contact: n.toLowerCase() + '@example.com', items: [line(prods[0])] };
+      [[2, 'Medvedev', 'B. Jones'], [3, 'Sokolov', 'A. Smith']].forEach(([k, n, by]) => { // a few lost offers so the demo win rates are realistic
+        const r = { ...rej, id: uid(), no: noOf(++db.counter), clientName: n, contact: n.toLowerCase() + '@example.com', items: [line(prods[0])], createdBy: by };
         r.at = r.sentAt = when(k, 17); db.offers.push(r);
       });
     }
@@ -92,6 +92,7 @@
   const publicOffer = o => { const t = totals(o), s = statusOf(o);
     return { id: o.id, no: o.no, clientName: o.clientName, contact: o.contact, requestId: o.requestId, validUntil: o.validUntil, discount: o.discount, notes: o.notes,
       date: o.acceptedAt || o.sentAt || o.at, acceptedAt: o.acceptedAt || 0, // "date" = when the offer was accepted (else sent / created); used by the dashboard
+      createdBy: o.createdBy || '',
       status: s, statusLabel: STATUS[s][0], statusClass: STATUS[s][1], sub: t.sub, disc: t.disc, total: t.total,
       items: o.items.map(it => ({ name: it.name, desc: it.desc, qty: it.qty, price: it.price, discount: it.discount, lt: lineTotal(it) })) }; };
   window.KitchensOffers = {
