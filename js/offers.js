@@ -59,7 +59,30 @@
   let draft = null, isNew = false, notice = '';
   let query = '', statusF = '';
   let pickQuery = '', pickType = '';
-  window.addEventListener('hashchange', () => { mode = 'list'; draft = null; notice = ''; query = ''; statusF = ''; });
+  let pending = null; // { id, mode } — set by KitchensOffers.open*, consumed on the next navigation to this tab
+  window.addEventListener('hashchange', () => {
+    notice = ''; query = ''; statusF = '';
+    const o = pending && db && db.offers.find(x => x.id === pending.id);
+    if (o) { draft = JSON.parse(JSON.stringify(o)); isNew = false; mode = pending.mode; } else { mode = 'list'; draft = null; }
+    pending = null;
+  });
+
+  /* API for other pages (the case page links offers as a block) */
+  const publicOffer = o => { const t = totals(o), s = statusOf(o);
+    return { id: o.id, no: o.no, clientName: o.clientName, contact: o.contact, requestId: o.requestId, validUntil: o.validUntil, discount: o.discount, notes: o.notes,
+      status: s, statusLabel: STATUS[s][0], statusClass: STATUS[s][1], sub: t.sub, disc: t.disc, total: t.total,
+      items: o.items.map(it => ({ name: it.name, desc: it.desc, qty: it.qty, price: it.price, discount: it.discount, lt: lineTotal(it) })) }; };
+  window.KitchensOffers = {
+    list: () => { init(); return [...db.offers].sort((a, b) => b.at - a.at).map(publicOffer); },
+    get: id => { init(); const o = db.offers.find(x => x.id === id); return o ? publicOffer(o) : null; },
+    create: ({ clientName, contact, requestId }) => {
+      init();
+      const o = Object.assign(newOffer(), { clientName, contact, requestId, no: noOf(++db.counter) });
+      db.offers.push(o); persist(); return o.id;
+    },
+    openEditor: id => { pending = { id, mode: 'edit' }; location.hash = 'tab/price-offers'; },
+    openDoc: id => { pending = { id, mode: 'doc' }; location.hash = 'tab/price-offers'; }
+  };
 
   /* ---------- list ---------- */
   function listHtml() {

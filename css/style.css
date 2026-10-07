@@ -374,3 +374,8 @@ fieldset.spec .fill{max-width:none}
   main{padding:0;max-width:none}
   .po-doc{border:0;box-shadow:none;padding:0;max-width:none}
 }
+
+/* Case: linked price offer */
+.offer-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.offer-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.cb-body .po-lines th,.cb-body .po-lines td{font-size:14px}

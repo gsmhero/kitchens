@@ -89,6 +89,48 @@
     </div>`;
   }
 
+  /* Price Offer block: shows an offer picked from the Price offers list (live data, not a copy) */
+  function offerBody(b, ro) {
+    const O = window.KitchensOffers, offers = O.list(), o = b.offerId ? O.get(b.offerId) : null, money = n => K().fmt(n) + ' ₽';
+    if (ro) { // client view
+      if (!o) return '<p class="sub">No offer has been attached yet.</p>';
+      if (o.status === 'draft') return `<p class="sub">Offer <b>${esc(o.no)}</b> is being prepared. You will see it here as soon as it is sent.</p>`;
+    }
+    if (!o) {
+      const mine = offers.filter(x => x.requestId === ctx.id), other = offers.filter(x => x.requestId !== ctx.id);
+      const opt = x => `<option value="${x.id}">${esc(x.no)} — ${esc(x.clientName)} — ${money(x.total)} — ${esc(x.statusLabel)}</option>`;
+      return `${b.offerId ? '<p class="sub">The linked offer no longer exists. Pick another one.</p>' : ''}
+        <div class="row">
+          <label class="grow">Select an offer from Price offers
+            <select data-in="bk" data-k="offerId" data-bid="${b.id}">
+              <option value="">— choose offer —</option>
+              ${mine.length ? `<optgroup label="Linked to this request">${mine.map(opt).join('')}</optgroup>` : ''}
+              <optgroup label="${mine.length ? 'Other offers' : 'All offers'}">${other.map(opt).join('')}</optgroup>
+            </select></label>
+          <button class="btn dark push" data-cs="new-offer" data-bid="${b.id}">+ Create offer for this client</button>
+        </div>
+        ${offers.length ? '' : '<p class="hint">There are no offers yet. Create one for this client.</p>'}`;
+    }
+    return `
+      <div class="offer-head">
+        <b>${esc(o.no)}</b> <span class="pill ${o.statusClass}">${esc(o.statusLabel)}</span>
+        <span class="sub">Valid until ${fmtD(o.validUntil)}${ro ? '' : ' · ' + esc(o.clientName)}</span>
+        ${ro ? '' : `<span class="offer-actions">
+          <button class="btn small" data-cs="offer-open" data-oid="${o.id}">Open offer</button>
+          <button class="btn small" data-cs="offer-doc" data-oid="${o.id}">Preview / print</button>
+          <button class="link" data-cs="offer-unlink" data-bid="${b.id}">change</button></span>`}
+      </div>
+      <div class="matrix-wrap"><table class="po-lines"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Disc.</th><th class="num">Total</th></tr></thead><tbody>
+        ${o.items.map(it => `<tr><td><b>${esc(it.name)}</b><br><small class="sub">${esc(it.desc)}</small></td><td class="num">${esc(it.qty)}</td><td class="num">${money(it.price)}</td><td class="num">${+it.discount ? esc(it.discount) + ' %' : '—'}</td><td class="num">${money(it.lt)}</td></tr>`).join('') || '<tr><td colspan="5" class="sub">This offer has no items yet.</td></tr>'}
+      </tbody></table></div>
+      <div class="po-totals">
+        <div><span>Subtotal</span><b>${money(o.sub)}</b></div>
+        ${+o.discount ? `<div><span>Discount ${esc(o.discount)} %</span><b>− ${money(o.disc)}</b></div>` : ''}
+        <div class="grand"><span>Total</span><b>${money(o.total)}</b></div>
+      </div>
+      ${o.notes ? `<p class="po-notes">${esc(o.notes).replace(/\n/g, '<br>')}</p>` : ''}`;
+  }
+
   function blockBody(b, ro, staff) {
     const lock = ro || b.locked;
     switch (b.type) {
@@ -117,6 +159,7 @@
             ${ro ? '' : `<button class="btn dark push" data-cs="lock" data-bid="${b.id}">${b.locked ? 'Edit' : 'Save'}</button>`}
           </div>`;
       case 'price': {
+        if (!b.items) return offerBody(b, ro); // linked offer from the Price offers list
         const total = b.items.reduce((a, r) => a + (+r.qty || 0) * (+r.price || 0), 0);
         return `<table class="price"><thead><tr><th>Item</th><th>Qty</th><th>Price, RUB</th><th>Sum</th><th></th></tr></thead><tbody>
           ${b.items.map((r, k) => `<tr>
@@ -190,7 +233,7 @@
     if (type === 'status') Object.assign(b, { status: STATUSES[1], text: '' });
     if (type === 'measure') Object.assign(b, { assignee: '', date: '', measures: [] });
     if (type === 'offer') Object.assign(b, { photos: [], desc: '', cost: '', days: '', locked: false });
-    if (type === 'price') Object.assign(b, { items: [{ name: '', qty: 1, price: '' }], locked: false });
+    if (type === 'price') b.offerId = ''; // an offer from the Price offers list (older blocks may still hold their own item table)
     return b;
   };
 
@@ -252,6 +295,15 @@
         mutate(c => block(c, bid).measures.find(m => m.id === d.mid).fields.push({ id: uid(), label, type: g('type').value, unit: g('unit').value.trim(), value: '' }));
         return done();
       }
+      case 'new-offer': { // create an offer for this client, linked to this request, and attach it
+        const sub = find(ctx.id).sub;
+        const oid = window.KitchensOffers.create({ clientName: sub.from.name, contact: sub.from.contact, requestId: ctx.id });
+        mutate(c => { block(c, bid).offerId = oid; });
+        return done();
+      }
+      case 'offer-open': window.KitchensOffers.openEditor(d.oid); return;
+      case 'offer-doc': window.KitchensOffers.openDoc(d.oid); return;
+      case 'offer-unlink': mutate(c => { block(c, bid).offerId = ''; }); return done();
       case 'add-row': mutate(c => block(c, bid).items.push({ name: '', qty: 1, price: '' })); return done();
       case 'rm-row': mutate(c => block(c, bid).items.splice(+d.k, 1)); return done();
       case 'del-cm': mutate(c => { const b = block(c, bid); b.comments = b.comments.filter(x => x.id !== d.cid); }); return done();
@@ -273,7 +325,7 @@
     if (!t.dataset || !t.dataset.in || !onCase()) return;
     const d = t.dataset;
     switch (d.in) {
-      case 'bk': mutate(c => { block(c, d.bid)[d.k] = t.value; }); break;
+      case 'bk': mutate(c => { block(c, d.bid)[d.k] = t.value; }); if (d.k === 'offerId') redraw(); break;
       case 'mf': mutate(c => { block(c, d.bid).measures.find(m => m.id === d.mid).fields.find(f => f.id === d.fid).value = t.value; }); break;
       case 'pr': mutate(c => { block(c, d.bid).items[+d.k][d.pk] = t.value; }); redraw(); break;
       case 'cm-files': {
