@@ -39,7 +39,7 @@
     isCustom,
     saveForm: (name, form) => save(keyOf(name, 'form'), form),
     resetForm: name => { try { localStorage.removeItem(keyOf(name, 'form')); } catch (e) {} },
-    // requests of every recipient, for the Flow tab: [{ to, sub }] (sub.stage = index in Kitchens.STAGES, default 0)
+    // requests of every recipient, for the Flow tab: [{ to, sub }] (sub.stage = stage id; missing/unknown = first stage)
     all: () => {
       const out = [];
       try {
@@ -109,7 +109,7 @@
       <div class="card req-item">
         <div class="req-top"><b>${esc(s.from.name)}</b> <span class="pill">${esc(s.from.contact)}</span>
           <span class="pill">${s.from.guest ? 'guest' : 'registered user'}</span>
-          <a class="pill ok" href="#tab/flow">Stage: ${esc(window.Kitchens.STAGES[s.stage || 0])}</a>
+          <a class="pill ok" href="#tab/flow">Stage: ${esc(window.Kitchens.getStages()[window.Kitchens.stageIndex(s.stage)].name)}</a>
           <span class="sub">${fmtDate(s.at)}</span>
           <button class="link danger-t" data-rq="del-sub" data-id="${s.id}">delete</button></div>
         <dl>${s.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${val(fl, s.values[fl.id])}</dd>`).join('')}</dl>
@@ -147,7 +147,7 @@
     });
     const from = { name: e.target.elements.__name.value.trim(), contact: e.target.elements.__contact.value.trim(), guest: !me() };
     // the field list is stored with the request so it stays readable if the form is edited later
-    save(keyOf(to, 'subs'), [...inbox(to), { id: FF().uid(), at: Date.now(), stage: 0, from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
+    save(keyOf(to, 'subs'), [...inbox(to), { id: FF().uid(), at: Date.now(), stage: null, from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
     sent = to; target = '';
     redraw();
     window.scrollTo(0, 0);

@@ -180,3 +180,11 @@ select.perm:disabled{opacity:.8}
 .req-ticket dt{color:var(--muted)} .req-ticket dd{margin:0}
 .tk-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
 .seg{display:flex;gap:6px}
+
+/* Stages */
+.stage-list{list-style:none;margin:0 0 16px;padding:0}
+.stage-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.stage-list .num{width:26px;height:26px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:13px;color:var(--muted);flex:none}
+.stage-list input{flex:1;min-width:120px;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
+.stage-add{display:flex;gap:10px;margin-top:4px}
+.stage-add input{flex:1;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}

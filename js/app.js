@@ -19,14 +19,24 @@
 
   /* ---------- Demo data ---------- */
   // production pipeline, in order; stage 0 ("Request") receives requests sent from the Request page
-  const STAGES = ['Request', 'Offer', 'Measure', 'Design', 'Payment', 'Production', 'Assembly'];
+  // Stages are editable (Stages tab) and saved as [{ id, name }]. Items refer to a stage by id, so renaming and
+  // reordering never breaks them; an item whose stage id no longer exists falls back to the first stage.
+  const DEFAULT_STAGES = ['Request', 'Offer', 'Measure', 'Design', 'Payment', 'Production', 'Assembly']
+    .map(name => ({ id: name.toLowerCase(), name }));
+  let stages = store.get('stages') || DEFAULT_STAGES.map(s => ({ ...s }));
+  const stageIndex = ref => {
+    if (typeof ref === 'number') ref = (DEFAULT_STAGES[ref] || {}).id; // legacy: stage stored as a position
+    const i = stages.findIndex(s => s.id === ref);
+    return i < 0 ? 0 : i;
+  };
+  const setStages = list => { stages = list; store.set('stages', stages); };
   const ORDERS = [
-    { id: 1042, client: 'Ivanov', stage: 1, sum: 180000, status: 'ok' },
-    { id: 1043, client: 'Petrova', stage: 2, sum: 150000, status: 'ok' },
-    { id: 1044, client: 'Sidorov', stage: 5, sum: 200000, status: 'warn' },
-    { id: 1045, client: 'Kozlova', stage: 3, sum: 100000, status: 'ok' },
-    { id: 1046, client: 'Morozov', stage: 6, sum: 90000, status: 'bad' },
-    { id: 1047, client: 'Smirnova', stage: 4, sum: 50000, status: 'ok' }
+    { id: 1042, client: 'Ivanov', stage: 'offer', sum: 180000, status: 'ok' },
+    { id: 1043, client: 'Petrova', stage: 'measure', sum: 150000, status: 'ok' },
+    { id: 1044, client: 'Sidorov', stage: 'production', sum: 200000, status: 'warn' },
+    { id: 1045, client: 'Kozlova', stage: 'design', sum: 100000, status: 'ok' },
+    { id: 1046, client: 'Morozov', stage: 'assembly', sum: 90000, status: 'bad' },
+    { id: 1047, client: 'Smirnova', stage: 'payment', sum: 50000, status: 'ok' }
   ];
   const fmt = n => n.toLocaleString('en-US').replace(/,/g, ' ');
   const pill = s => `<span class="pill ${s}">${{ ok: 'On track', warn: 'At risk', bad: 'Delayed' }[s]}</span>`;
@@ -65,7 +75,8 @@
   const TAB_PAGES = {
     'Dashboard': () => {
       const total = ORDERS.reduce((a, o) => a + o.sum, 0);
-      const maxN = Math.max(...STAGES.map((_, i) => ORDERS.filter(o => o.stage === i).length), 1);
+      const inStage = i => ORDERS.filter(o => stageIndex(o.stage) === i).length;
+      const maxN = Math.max(...stages.map((_, i) => inStage(i)), 1);
       return `
       <h1>Dashboard</h1><p class="sub">Overview of production and finance.</p>
       <div class="grid g4">
@@ -76,18 +87,17 @@
       </div>
       <div class="grid g2">
         <div class="card"><h3>Orders by stage</h3>
-          <div class="bars">${STAGES.map((s, i) => { const c = ORDERS.filter(o => o.stage === i).length; return `<div style="height:${c / maxN * 100}%"><span>${s} (${c})</span></div>`; }).join('')}</div></div>
+          <div class="bars">${stages.map((s, i) => { const c = inStage(i); return `<div style="height:${c / maxN * 100}%"><span>${s.name.replace(/[<>&]/g, '')} (${c})</span></div>`; }).join('')}</div></div>
         <div class="card"><h3>Latest orders</h3><table>
           <tr><th>#</th><th>Client</th><th>Stage</th><th>Sum</th><th>Status</th></tr>
-          ${ORDERS.map(o => `<tr><td>${o.id}</td><td>${o.client}</td><td>${STAGES[o.stage]}</td><td>${fmt(o.sum)}</td><td>${pill(o.status)}</td></tr>`).join('')}</table></div>
+          ${ORDERS.map(o => `<tr><td>${o.id}</td><td>${o.client}</td><td>${stages[stageIndex(o.stage)].name.replace(/[<>&]/g, '')}</td><td>${fmt(o.sum)}</td><td>${pill(o.status)}</td></tr>`).join('')}</table></div>
       </div>`;
     },
     // 'Flow' lives in js/flow.js
     'Archive': () => `<h1>Archive</h1><p class="sub">Completed orders.</p><div class="card"><table>
       <tr><th>#</th><th>Client</th><th>Closed</th><th>Sum</th></tr>
       ${[[1031, 'Orlov', '2026-08-14', 210000], [1029, 'Volkova', '2026-08-02', 135000], [1024, 'Lebedev', '2026-07-19', 98000]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td></tr>`).join('')}</table></div>`,
-    'Stages': () => `<h1>Stages</h1><p class="sub">Configure production stages.</p><div class="card"><ul class="clean">
-      ${STAGES.map((s, i) => `<li><b>${i + 1}.</b> ${s}</li>`).join('')}</ul></div>`,
+    // 'Stages' lives in js/stages.js
     'Staff': () => `<h1>Staff</h1><div class="card"><table><tr><th>Name</th><th>Role</th><th>Branch</th></tr>
       ${[['A. Smith', 'Manager', 'Main'], ['B. Jones', 'Designer', 'Main'], ['C. Brown', 'Carpenter', 'Workshop'], ['D. Davis', 'Installer', 'Workshop']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div>`,
     'Warehouse': () => `<h1>Warehouse</h1><div class="card"><table><tr><th>Material</th><th>In stock</th><th>Min</th><th></th></tr>
@@ -189,7 +199,10 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
 
-  window.Kitchens = { TABS, STAGES, ORDERS, fmt, render, getUser: () => user };
+  window.Kitchens = {
+    TABS, ORDERS, fmt, render, getUser: () => user,
+    getStages: () => stages.map(s => ({ ...s })), setStages, stageIndex, defaultStages: () => DEFAULT_STAGES.map(s => ({ ...s }))
+  };
   renderTabs();
   render();
 })();
