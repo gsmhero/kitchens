@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchens — Furniture Manufacturing Manager</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ HEADER (shared) ============ -->
+<header class="topbar">
+  <div class="brand"><span class="logo">K</span> Kitchens</div>
+
+  <!-- Main menu (Guest and Registered) -->
+  <nav class="main-menu" id="mainMenu" aria-label="Main menu">
+    <a href="#home" data-page="home">Home</a>
+    <a href="#catalogue" data-page="catalogue">Catalogue</a>
+    <a href="#about" data-page="about">About Us</a>
+    <a href="#blog" data-page="blog">Blog</a>
+    <a href="#contacts" data-page="contacts">Contacts</a>
+  </nav>
+
+  <div class="topbar-right">
+    <!-- Notifications bar (Registered only) -->
+    <div class="notif auth-only" id="notifBar">
+      <button class="notif-btn" id="notifBtn" aria-label="Notifications">🔔<span class="badge" id="notifCount">0</span></button>
+      <div class="notif-panel" id="notifPanel" hidden>
+        <h4>Notifications</h4>
+        <ul id="notifList"></ul>
+        <button class="link" id="notifClear">Mark all as read</button>
+      </div>
+    </div>
+
+    <!-- Login and Registration bar (Guests) -->
+    <div class="login-bar guest-only" id="loginBar">
+      <button class="btn ghost" data-open="loginModal">Login</button>
+      <button class="btn primary" data-open="regModal">Register</button>
+    </div>
+
+    <!-- User box (Registered) -->
+    <div class="user-box auth-only">
+      <span class="avatar" id="userAvatar">U</span>
+      <span class="user-name" id="userName">User</span>
+      <button class="btn ghost small" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs row (Registered only) -->
+<div class="tabs-row auth-only" id="tabsRow" role="tablist" aria-label="Workspace tabs"></div>
+
+<main id="view"></main>
+
+<footer class="footer">© 2026 Kitchens · Furniture manufacturing manager · prototype</footer>
+
+<!-- ============ MODALS ============ -->
+<div class="modal" id="loginModal" hidden>
+  <form class="modal-card" id="loginForm">
+    <button type="button" class="close" data-close>×</button>
+    <h3>Login</h3>
+    <label>Email<input type="email" name="email" required placeholder="you@company.com"></label>
+    <label>Password<input type="password" name="password" required></label>
+    <button class="btn primary wide">Login</button>
+    <p class="hint">Prototype: any email/password works.</p>
+  </form>
+</div>
+<div class="modal" id="regModal" hidden>
+  <form class="modal-card" id="regForm">
+    <button type="button" class="close" data-close>×</button>
+    <h3>Registration</h3>
+    <label>Name<input name="name" required></label>
+    <label>Email<input type="email" name="email" required></label>
+    <label>Password<input type="password" name="password" required minlength="6"></label>
+    <button class="btn primary wide">Create account</button>
+  </form>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
