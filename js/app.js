@@ -132,14 +132,19 @@
     const view = $('#view');
     $$('#mainMenu a').forEach(a => a.classList.toggle('active', route === a.dataset.page));
 
-    if (user && route.startsWith('tab/')) {
-      const tab = TABS.find(t => slug(t) === route.slice(4)) || TABS[0];
-      $$('#tabsRow button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      const ext = window.KitchensPages || {};
-      view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
-    } else {
-      $$('#tabsRow button').forEach(b => b.classList.remove('active'));
-      view.innerHTML = route === 'request' ? window.KitchensPages.Request() : (GUEST[route] || GUEST.home)();
+    try {
+      if (user && route.startsWith('tab/')) {
+        const tab = TABS.find(t => slug(t) === route.slice(4)) || TABS[0];
+        $$('#tabsRow button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        const ext = window.KitchensPages || {};
+        view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
+      } else {
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = route === 'request' ? window.KitchensPages.Request() : (GUEST[route] || GUEST.home)();
+      }
+    } catch (err) { // never leave a blank page: show the problem instead
+      console.error(err);
+      view.innerHTML = '<div class="placeholder">This page failed to load: ' + String(err.message).replace(/[<>&]/g, '') + '</div>';
     }
     renderNotifs();
   }

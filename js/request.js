@@ -31,7 +31,8 @@
   };
   const isCustom = name => !!load(keyOf(name, 'form'), null);
   const formOf = name => load(keyOf(name, 'form'), null) || FF().template(TEMPLATE);
-  const inbox = name => load(keyOf(name, 'subs'), []);
+  // entries saved by early prototype versions lack `from` / `fields`; ignore them instead of breaking pages
+  const inbox = name => load(keyOf(name, 'subs'), []).filter(s => s && s.from && Array.isArray(s.fields) && s.values);
 
   /* API used by the Forms tab editor */
   window.KitchensRequest = {
