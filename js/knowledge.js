@@ -72,7 +72,8 @@
           <div class="kb-meta">
             ${it.tags.map(t => `<span class="pill role">${hl(t)}</span>`).join('')}
             ${it.accepted ? '<span class="pill ok">✔ Answered</span>' : it.answers.length ? '' : '<span class="pill warn">Unanswered</span>'}
-            <span class="sub">${esc(it.author)} · ${fmtD(it.at)}</span>
+            <span class="sub">${esc(it.author)} · ${fmtD(it.at)}${it.edited ? ' · edited' : ''}</span>
+            <button class="link" data-kb="edit" data-id="${it.id}">edit</button>
           </div>
         </div>
       </article>`;
@@ -113,7 +114,9 @@
     <div class="kb-meta">
       ${it.tags.map(t => `<span class="pill role">${esc(t)}</span>`).join('')}
       <span class="sub">Asked by ${esc(it.author)} · ${fmtD(it.at)}</span>
-      ${mine ? `<button class="link" data-kb="edit" data-id="${it.id}">edit</button><button class="link danger-t" data-kb="del-q" data-id="${it.id}">delete</button>` : ''}
+      ${it.edited ? `<span class="sub">edited by ${esc(it.edited.by)} · ${fmtD(it.edited.at)}</span>` : ''}
+      <button class="btn small" data-kb="edit" data-id="${it.id}">✎ Edit question</button>
+      ${mine ? `<button class="link danger-t" data-kb="del-q" data-id="${it.id}">delete</button>` : ''}
     </div>
     <div class="card kb-body">${esc(it.body).replace(/\n/g, '<br>') || '<span class="sub">No details.</span>'}</div>
 
@@ -122,7 +125,8 @@
       <div class="card kb-answer ${a.id === it.accepted ? 'accepted' : ''}">
         ${a.id === it.accepted ? '<span class="pill ok">✔ Accepted answer</span>' : ''}
         <div class="kb-text">${esc(a.text).replace(/\n/g, '<br>')}</div>
-        <div class="kb-meta"><span class="sub">${esc(a.author)} · ${fmtD(a.at)}</span>
+        <div class="kb-meta"><span class="sub">${esc(a.author)} · ${fmtD(a.at)}${a.edited ? ` · edited ${fmtD(a.edited)}` : ''}</span>
+          ${mine || a.author === me() ? `<button class="link" data-kb="edit-a" data-id="${it.id}" data-aid="${a.id}">edit</button>` : ''}
           ${mine ? `<button class="link" data-kb="accept" data-id="${it.id}" data-aid="${a.id}">${a.id === it.accepted ? 'unmark accepted' : 'mark as accepted'}</button>` : ''}
           ${mine || a.author === me() ? `<button class="link danger-t" data-kb="del-a" data-id="${it.id}" data-aid="${a.id}">delete</button>` : ''}</div>
       </div>`).join('') || '<div class="placeholder">No answers yet. Be the first to answer.</div>'}
@@ -156,6 +160,19 @@
     m.querySelector('input').focus();
   }
 
+  function answerDialog(it, a) {
+    let m = document.getElementById('kbModal');
+    if (!m) { m = document.createElement('div'); m.className = 'modal'; m.id = 'kbModal'; document.body.appendChild(m); }
+    m.innerHTML = `<form class="modal-card wide" id="kbAnswerEdit" data-id="${it.id}" data-aid="${a.id}">
+      <button type="button" class="close" data-close>×</button>
+      <h3>Edit answer</h3>
+      <label>Answer<textarea name="text" rows="7" required>${esc(a.text)}</textarea></label>
+      <button class="btn primary wide">Save</button>
+    </form>`;
+    m.hidden = false;
+    m.querySelector('textarea').focus();
+  }
+
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-kb]');
@@ -163,7 +180,8 @@
     const d = el.dataset, it = items.find(x => x.id === d.id);
     switch (d.kb) {
       case 'ask': questionDialog(null); break;
-      case 'edit': questionDialog(it); break;
+      case 'edit': questionDialog(it); break; // anyone on the team can edit a question
+      case 'edit-a': answerDialog(it, it.answers.find(a => a.id === d.aid)); break;
       case 'open': view = { mode: 'q', id: d.id }; redraw(); window.scrollTo(0, 0); break;
       case 'back': view = { mode: 'list', id: null }; redraw(); break;
       case 'tag': tag = d.t; redraw(); break;
@@ -191,9 +209,17 @@
       e.preventDefault();
       const d = Object.fromEntries(new FormData(f));
       const tags = [...new Set(d.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean))];
-      if (f.dataset.id) Object.assign(items.find(x => x.id === f.dataset.id), { title: d.title.trim(), body: d.body.trim(), tags });
+      if (f.dataset.id) Object.assign(items.find(x => x.id === f.dataset.id), { title: d.title.trim(), body: d.body.trim(), tags, edited: { by: me(), at: Date.now() } });
       else { const it = { id: uid(), title: d.title.trim(), body: d.body.trim(), tags, author: me(), at: Date.now(), answers: [], accepted: null }; items.push(it); view = { mode: 'q', id: it.id }; }
       persist(); document.getElementById('kbModal').hidden = true; redraw(); window.scrollTo(0, 0);
+    }
+    if (f.id === 'kbAnswerEdit') {
+      e.preventDefault();
+      const text = f.elements.text.value.trim();
+      if (!text) return;
+      const a = items.find(x => x.id === f.dataset.id).answers.find(x => x.id === f.dataset.aid);
+      a.text = text; a.edited = Date.now();
+      persist(); document.getElementById('kbModal').hidden = true; redraw();
     }
     if (f.id === 'kbAnswerForm') {
       e.preventDefault();
