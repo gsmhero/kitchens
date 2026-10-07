@@ -82,7 +82,8 @@
       ${avatar(p, 'xl')}
       <div><h1>${esc(p.name)}</h1><div class="sub">${esc(p.position)}</div>
         <p>${esc(p.bio)}</p>
-        <div class="pf-contacts">${p.email ? `<a class="pill" href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a>` : ''}${p.phone ? `<span class="pill">☎ ${esc(p.phone)}</span>` : ''}</div></div>
+        <div class="pf-contacts">${p.email ? `<a class="pill" href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a>` : ''}${p.phone ? `<span class="pill">☎ ${esc(p.phone)}</span>` : ''}
+          ${me() && p.owner !== me() ? `<a class="btn small" href="#messages/${encodeURIComponent(p.owner)}">💬 Send a message</a>` : ''}</div></div>
     </header>
     ${p.blocks.filter(b => b.visible).map(b => B().publicHtml(b)).join('')}
     ${prods.length ? `<section class="pf-block"><h2>Products by ${esc(p.name)}</h2><div class="grid g4">${prods.map(x => `<a class="card pf-prod" href="#catalogue"><b>${esc(x.name)}</b><div class="sub">${esc(x.typeName)}</div><div class="pub-price">${x.price === '' ? 'Price on request' : K().fmt(+x.price) + ' ₽'}</div></a>`).join('')}</div></section>` : ''}`;

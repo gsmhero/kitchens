@@ -429,7 +429,10 @@
       const delta = num(after - it.qty);
       if (type === 'adjust' && !delta) { err.textContent = 'The counted quantity equals the current stock.'; return; }
       db.moves.push({ id: uid(), itemId: it.id, type, qty, delta, after, ref: f.elements.ref.value.trim(), user: me(), at: Date.now() });
+      const wasStatus = status(it);
       it.qty = after;
+      if (status(it) !== 'ok' && status(it) !== wasStatus) // stock just dropped to low / out: tell everyone who can see the warehouse
+        window.KitchensNotify.pushAccess('Warehouse', 1, { type: 'stock', title: status(it) === 'out' ? 'Out of stock' : 'Low stock', text: `${it.name}: ${fmtN(it.qty)} ${it.unit} left (minimum ${fmtN(it.min)})`, link: '#tab/warehouse' });
       persist(); document.getElementById('whModal').hidden = true; redraw();
     }
   });

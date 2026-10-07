@@ -300,9 +300,16 @@
         if (draft.status === 'accepted' && !draft.acceptedAt) draft.acceptedAt = Date.now(); // revenue is counted from this date
         if (draft.status !== 'accepted') draft.acceptedAt = 0;
         const saved = JSON.parse(JSON.stringify(draft)); delete saved._editing;
+        const prevStatus = isNew ? 'draft' : (db.offers.find(x => x.id === saved.id) || {}).status;
         if (isNew) { saved.no = noOf(++db.counter); db.offers.push(saved); isNew = false; draft.no = saved.no; }
         else db.offers[db.offers.findIndex(x => x.id === saved.id)] = saved;
-        persist(); notice = `Offer ${saved.no} saved.`; redraw();
+        persist(); notice = `Offer ${saved.no} saved.`;
+        if (saved.status !== prevStatus && ['sent', 'accepted', 'rejected'].includes(saved.status)) { // tell the offer's author and the employee the request went to
+          const t = totals(saved).total, req = saved.requestId && window.KitchensRequest.all().find(r => r.sub.id === saved.requestId);
+          const n = { type: 'offer', title: `Offer ${saved.no} ${saved.status}`, text: `${saved.clientName} · ${money(t)}`, link: req ? '#case/' + saved.requestId : '#tab/price-offers' };
+          [...new Set([saved.createdBy, req && req.to].filter(Boolean))].forEach(u => window.KitchensNotify.push(u, n));
+        }
+        redraw();
         break;
       }
     }

@@ -24,12 +24,13 @@
 
   <div class="topbar-right">
     <!-- Notifications bar (Registered only) -->
+    <a class="notif-btn msg-btn auth-only" id="msgBtn" href="#messages" aria-label="Messages" title="Messages">✉<span class="badge zero" id="msgCount">0</span></a>
     <div class="notif auth-only" id="notifBar">
       <button class="notif-btn" id="notifBtn" aria-label="Notifications">🔔<span class="badge" id="notifCount">0</span></button>
       <div class="notif-panel" id="notifPanel" hidden>
-        <h4>Notifications</h4>
+        <div class="np-head"><h4>Notifications</h4><button class="link" id="notifClear">Mark all as read</button></div>
         <ul id="notifList"></ul>
-        <button class="link" id="notifClear">Mark all as read</button>
+        <a class="np-all" href="#notifications" id="notifAll">View all notifications</a>
       </div>
     </div>
 
@@ -79,6 +80,8 @@
 
 <script src="js/branches-roles.js"></script>
 <script src="js/forms.js"></script>
+<script src="js/notify.js"></script>
+<script src="js/messages.js"></script>
 <script src="js/request.js"></script>
 <script src="js/flow.js"></script>
 <script src="js/stages.js"></script>

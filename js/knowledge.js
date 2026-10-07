@@ -225,7 +225,9 @@
       e.preventDefault();
       const text = f.elements.text.value.trim();
       if (!text) return;
-      items.find(x => x.id === f.dataset.id).answers.push({ id: uid(), text, author: me(), at: Date.now() });
+      const qn = items.find(x => x.id === f.dataset.id);
+      qn.answers.push({ id: uid(), text, author: me(), at: Date.now() });
+      window.KitchensNotify.push(qn.author, { type: 'knowledge', title: 'New answer to your question', text: `${me()} answered “${qn.title}”`.slice(0, 120), link: '#tab/knowledge' });
       persist(); redraw();
     }
   });

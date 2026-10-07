@@ -157,7 +157,9 @@
     });
     const from = { name: e.target.elements.__name.value.trim(), contact: e.target.elements.__contact.value.trim(), guest: !me() };
     // the field list is stored with the request so it stays readable if the form is edited later
-    save(keyOf(to, 'subs'), [...inbox(to), { id: FF().uid(), at: Date.now(), stage: null, from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
+    const newId = FF().uid();
+    save(keyOf(to, 'subs'), [...inbox(to), { id: newId, at: Date.now(), stage: null, from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
+    window.KitchensNotify.push(to, { type: 'request', title: 'New request', text: `${from.name} (${from.contact}) sent you a request`, link: '#case/' + newId });
     sent = to; target = '';
     redraw();
     window.scrollTo(0, 0);

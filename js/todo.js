@@ -273,6 +273,9 @@
       case 'save': {
         if (!draft.title.trim()) { alert('Please enter a title.'); return; }
         draft.title = draft.title.trim();
+        const prevAssignee = isNew ? '' : (stored() || {}).assignee || '';
+        if (draft.assignee && draft.assignee !== prevAssignee) // tell the employee a task was assigned to them
+          window.KitchensNotify.push(draft.assignee, { type: 'task', title: 'Task assigned to you', text: draft.title + (draft.due ? ' · due ' + fmtD(draft.due) : ''), link: '#tab/todo' });
         if (isNew) { draft.no = noOf(++db.counter); db.tasks.push(draft); }
         else {
           const t0 = stored(), keep = { checklist: t0.checklist, comments: t0.comments }, was = t0.status;
@@ -317,7 +320,9 @@
     e.preventDefault();
     const inp = e.target.elements.title, title = inp.value.trim();
     if (!title || !can.full()) return;
-    db.tasks.push(mk({ title, assignee: who === 'me' ? me() : (['all', 'none'].includes(who) ? '' : who) }));
+    const assignee = who === 'me' ? me() : (['all', 'none'].includes(who) ? '' : who);
+    db.tasks.push(mk({ title, assignee }));
+    if (assignee) window.KitchensNotify.push(assignee, { type: 'task', title: 'Task assigned to you', text: title, link: '#tab/todo' });
     persist(); redraw();
     const n = document.querySelector('#tdQuick input'); if (n) n.focus();
   });

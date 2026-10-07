@@ -318,6 +318,8 @@
         if (!text && !files.length) { input.focus(); return; }
         const user = ctx.client ? 'Client (' + find(ctx.id).sub.from.name + ')' : K().getUser().name;
         mutate(c => block(c, bid).comments.push({ id: uid(), user, at: Date.now(), text, files, client: ctx.client }));
+        { const r = find(ctx.id); // tell the employee the request was sent to (a client's comment, or a colleague's)
+          if (r) window.KitchensNotify.push(r.to, { type: 'comment', title: ctx.client ? 'Client commented' : 'New comment on a request', text: `${user}: ${text || '📎 attachment'}`.slice(0, 120), link: '#case/' + ctx.id }); }
         delete pending[bid];
         return done();
       }
@@ -330,7 +332,12 @@
     if (!t.dataset || !t.dataset.in || !onCase()) return;
     const d = t.dataset;
     switch (d.in) {
-      case 'bk': mutate(c => { block(c, d.bid)[d.k] = t.value; }); if (d.k === 'offerId') redraw(); break;
+      case 'bk': mutate(c => { block(c, d.bid)[d.k] = t.value; }); if (d.k === 'offerId') redraw();
+        if (d.k === 'assignee' && t.value) { // a measure was assigned: tell the employee
+          const r = find(ctx.id), b = r && r.sub.case && r.sub.case.blocks.find(x => x.id === d.bid);
+          window.KitchensNotify.push(t.value, { type: 'measure', title: 'Measure assigned to you', text: `${r ? r.sub.from.name : 'Client'}${b && b.date ? ' · ' + b.date : ''}`, link: '#tab/agents' });
+        }
+        break;
       case 'mf': mutate(c => { block(c, d.bid).measures.find(m => m.id === d.mid).fields.find(f => f.id === d.fid).value = t.value; }); break;
       case 'pr': mutate(c => { block(c, d.bid).items[+d.k][d.pk] = t.value; }); redraw(); break;
       case 'cm-files': {

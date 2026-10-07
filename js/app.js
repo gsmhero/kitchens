@@ -49,12 +49,6 @@
   const fmt = n => n.toLocaleString('en-US').replace(/,/g, ' ');
   const pill = s => `<span class="pill ${s}">${{ ok: 'On track', warn: 'At risk', bad: 'Delayed' }[s]}</span>`;
 
-  const INITIAL_NOTIFS = [
-    { t: 'New order #1047 created', s: '5 min ago' },
-    { t: 'Order #1046 is delayed at Assembly', s: '1 h ago' },
-    { t: 'Warehouse: MDF 18mm below minimum', s: '3 h ago' },
-    { t: 'Price offer #88 accepted by client', s: 'yesterday' }
-  ];
 
   /* ---------- Guest pages ---------- */
   const GUEST = {
@@ -93,7 +87,6 @@
 
   /* ---------- State ---------- */
   let user = store.get('user');
-  let notifs = store.get('notifs') || INITIAL_NOTIFS.map(n => ({ ...n, read: false }));
 
   /* ---------- Rendering ---------- */
   function currentRoute() { return decodeURIComponent(location.hash.slice(1)) || (user ? 'tab/dashboard' : 'home'); }
@@ -117,6 +110,12 @@
       } else if (route.startsWith('invite/')) { // invitation link for a new employee (#invite/<token>), works without login
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = window.KitchensPages.Invite(route.slice(7));
+      } else if (user && (route === 'messages' || route.startsWith('messages/'))) { // direct messages (#messages or #messages/<person>)
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = window.KitchensPages.Messages(route.slice(9));
+      } else if (user && route === 'notifications') { // all notifications of the logged-in user
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = window.KitchensPages.Notifications();
       } else if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
         $$('#tabsRow button').forEach(b => b.classList.toggle('active', isCase && b.dataset.tab === 'Flow'));
         view.innerHTML = window.KitchensPages.Case(route.slice(isShare ? 6 : 5), isShare);
@@ -128,7 +127,7 @@
       } else {
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = route === 'request' ? window.KitchensPages.Request()
-          : isCase ? '<h1>Please log in</h1><div class="placeholder"><button class="link" data-open="loginModal">Log in</button> to open this request.</div>'
+          : isCase || route === 'notifications' || route.startsWith('messages') ? '<h1>Please log in</h1><div class="placeholder"><button class="link" data-open="loginModal">Log in</button> to open this page.</div>'
           : (GUEST[route] || GUEST.home)();
       }
     } catch (err) { // never leave a blank page: show the problem instead
@@ -142,11 +141,8 @@
     $('#tabsRow').innerHTML = TABS.map(t => `<button role="tab" data-tab="${t}">${t}</button>`).join('');
   }
 
-  function renderNotifs() {
-    const unread = notifs.filter(n => !n.read).length;
-    const b = $('#notifCount'); b.textContent = unread; b.classList.toggle('zero', !unread);
-    $('#notifList').innerHTML = notifs.map(n => `<li class="${n.read ? 'read' : ''}">${n.t}<small>${n.s}</small></li>`).join('');
-  }
+  // the bell and the message badge are drawn by js/notify.js
+  function renderNotifs() { if (window.KitchensNotify) window.KitchensNotify.renderBell(); }
 
   /* ---------- Auth ---------- */
   function login(name, roleId) {
@@ -156,6 +152,7 @@
     if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
     location.hash = 'tab/dashboard';
     closeModals(); render();
+    if (window.KitchensNotify) { window.KitchensNotify.welcome(name); window.KitchensNotify.checkReminders(); renderNotifs(); } // first-visit note, task reminders
   }
   function logout() { user = null; store.del('user'); location.hash = 'home'; render(); }
 
@@ -179,12 +176,8 @@
 
     const tab = e.target.closest('#tabsRow button');
     if (tab) { location.hash = 'tab/' + slug(tab.dataset.tab); return; }
-
-    if (e.target.closest('#notifBtn')) { $('#notifPanel').hidden = !$('#notifPanel').hidden; return; }
-    if (!e.target.closest('#notifPanel')) $('#notifPanel').hidden = true;
   });
 
-  $('#notifClear').addEventListener('click', () => { notifs.forEach(n => n.read = true); store.set('notifs', notifs); renderNotifs(); });
   $('#logoutBtn').addEventListener('click', logout);
   $('#loginForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -205,4 +198,6 @@
   };
   renderTabs();
   render();
+  // a user who is already logged in when the page opens: first-visit note and task reminders
+  if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }
 })();

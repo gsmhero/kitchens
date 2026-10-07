@@ -179,6 +179,7 @@
       e.name = form.elements.name.value.trim() || e.name;
       e.status = 'active'; e.joinedAt = Date.now();
       persist();
+      window.KitchensNotify.pushAccess('Staff', 2, { type: 'staff', title: 'Invitation accepted', text: `${e.name} joined the team`, link: '#tab/staff' });
       K().login(e.name, e.roleId); // password is not stored: prototype has no real authentication
     }
   });
