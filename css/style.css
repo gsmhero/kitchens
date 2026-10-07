@@ -167,3 +167,5 @@ select.perm:disabled{opacity:.8}
 .req-top .link{margin-left:auto}
 .req-item dl{display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:4px 12px;margin:0;font-size:14px}
 .req-item dt{color:var(--muted)} .req-item dd{margin:0}
+
+.form-card.mine{border-color:var(--accent);background:#fffaf4}

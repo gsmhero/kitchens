@@ -9,6 +9,7 @@
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const uid = () => Math.random().toString(36).slice(2, 9);
+  const REQ = '__request'; // pseudo form id: the user's own form shown on the Request page
   const f = (label, type = 'text', required = false, options = '') => ({ id: uid(), label, type, required, options });
 
   const defaultForms = () => [
@@ -30,6 +31,8 @@
   /* shared helpers for other pages (e.g. Request) */
   window.KitchensForms = {
     TYPES, esc, uid, f, inputFor: (...a) => inputFor(...a),
+    // opens the editor for the current user's Request form (called from the Request page)
+    openRequestEditor: () => { pendingReq = true; location.hash = 'tab/forms'; },
     template: name => { init(); const x = forms.find(v => v.name === name) || defaultForms().find(v => v.name === name); return x ? JSON.parse(JSON.stringify(x)) : null; }
   };
 
@@ -37,7 +40,16 @@
   let view = { mode: 'list', id: null };
   let draft = null;
   const go = (mode, id = null) => { view = { mode, id }; redraw(); };
-  window.addEventListener('hashchange', () => { view = { mode: 'list', id: null }; draft = null; });
+  let pendingReq = false;
+  const me = () => window.Kitchens.getUser();
+  const requestDraft = () => {
+    const x = window.KitchensRequest.getForm(me().name);
+    return { id: REQ, name: x.name, desc: x.desc || '', fields: x.fields };
+  };
+  window.addEventListener('hashchange', () => {
+    if (pendingReq && me()) { pendingReq = false; draft = requestDraft(); view = { mode: 'build', id: REQ }; return; }
+    pendingReq = false; view = { mode: 'list', id: null }; draft = null;
+  });
 
   const count = id => subs.filter(s => s.formId === id).length;
   const fmtDate = t => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
@@ -50,6 +62,19 @@
     <div class="section-head"><h2>Your forms <span class="count">${forms.length}</span></h2>
       <button class="btn primary" data-fm="new">+ New form</button></div>
     <div class="grid g3">
+      ${me() ? (() => {
+        const x = window.KitchensRequest.getForm(me().name), custom = window.KitchensRequest.isCustom(me().name);
+        return `
+        <div class="card form-card mine">
+          <h3>My Request form <span class="count">${custom ? 'customised' : 'default'}</span></h3>
+          <p class="sub">The form visitors fill in on the <a class="link" href="#request">Request page</a> when they choose you.</p>
+          <div class="meta"><span class="pill">${x.fields.length} fields</span> <span class="pill ok">shown on #request</span></div>
+          <div class="actions">
+            <button class="btn small primary" data-fm="edit-req">Edit</button>
+            ${custom ? '<button class="btn small danger" data-fm="reset-req">Reset to default</button>' : ''}
+          </div>
+        </div>`;
+      })() : ''}
       ${forms.map(x => `
         <div class="card form-card">
           <h3>${esc(x.name)}</h3>
@@ -105,7 +130,8 @@
   function buildView() {
     return `
     <button class="link back" data-fm="list">← All forms</button>
-    <h1>${forms.some(v => v.id === draft.id) ? 'Edit form' : 'New form'}</h1>
+    <h1>${draft.id === REQ ? 'Edit my Request form' : forms.some(v => v.id === draft.id) ? 'Edit form' : 'New form'}</h1>
+    ${draft.id === REQ ? '<p class="sub">This is the form shown on the Request page when a visitor chooses you. Only you can change it.</p>' : ''}
     <div class="grid g2 build">
       <div class="card">
         <label class="stack">Form name<input data-d="name" value="${esc(draft.name)}" placeholder="e.g. Measurement sheet"></label>
@@ -148,6 +174,10 @@
       case 'list': draft = null; go('list'); break;
       case 'new': draft = { id: uid(), name: '', desc: '', fields: [f('')] }; go('build'); break;
       case 'edit': draft = JSON.parse(JSON.stringify(forms.find(v => v.id === id))); go('build'); break;
+      case 'edit-req': draft = requestDraft(); go('build', REQ); break;
+      case 'reset-req':
+        if (confirm('Reset your Request form to the default Client brief?')) { window.KitchensRequest.resetForm(me().name); redraw(); }
+        break;
       case 'fill': go('fill', id); break;
       case 'subs': go('subs', id); break;
       case 'del': {
@@ -167,6 +197,10 @@
       case 'save': {
         draft.fields = draft.fields.filter(x => x.label.trim());
         if (!draft.name.trim()) { alert('Please enter a form name.'); return; }
+        if (draft.id === REQ) {
+          window.KitchensRequest.saveForm(me().name, { name: draft.name, desc: draft.desc, fields: draft.fields });
+          draft = null; go('list'); break;
+        }
         const k = forms.findIndex(v => v.id === draft.id);
         if (k >= 0) forms[k] = draft; else forms.push(draft);
         persist(); draft = null; go('list');
