@@ -38,7 +38,19 @@
     getForm: formOf,
     isCustom,
     saveForm: (name, form) => save(keyOf(name, 'form'), form),
-    resetForm: name => { try { localStorage.removeItem(keyOf(name, 'form')); } catch (e) {} }
+    resetForm: name => { try { localStorage.removeItem(keyOf(name, 'form')); } catch (e) {} },
+    // requests of every recipient, for the Flow tab: [{ to, sub }] (sub.stage = index in Kitchens.STAGES, default 0)
+    all: () => {
+      const out = [];
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const m = /^request:(.+):subs$/.exec(localStorage.key(i));
+          if (m) { const to = decodeURIComponent(m[1]); inbox(to).forEach(sub => out.push({ to, sub })); }
+        }
+      } catch (e) {}
+      return out;
+    },
+    setStage: (to, id, stage) => save(keyOf(to, 'subs'), inbox(to).map(s => s.id === id ? { ...s, stage } : s))
   };
 
   let target = '';      // user the visitor sends a request to
@@ -97,6 +109,7 @@
       <div class="card req-item">
         <div class="req-top"><b>${esc(s.from.name)}</b> <span class="pill">${esc(s.from.contact)}</span>
           <span class="pill">${s.from.guest ? 'guest' : 'registered user'}</span>
+          <a class="pill ok" href="#tab/flow">Stage: ${esc(window.Kitchens.STAGES[s.stage || 0])}</a>
           <span class="sub">${fmtDate(s.at)}</span>
           <button class="link danger-t" data-rq="del-sub" data-id="${s.id}">delete</button></div>
         <dl>${s.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${val(fl, s.values[fl.id])}</dd>`).join('')}</dl>
@@ -134,7 +147,7 @@
     });
     const from = { name: e.target.elements.__name.value.trim(), contact: e.target.elements.__contact.value.trim(), guest: !me() };
     // the field list is stored with the request so it stays readable if the form is edited later
-    save(keyOf(to, 'subs'), [...inbox(to), { id: FF().uid(), at: Date.now(), from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
+    save(keyOf(to, 'subs'), [...inbox(to), { id: FF().uid(), at: Date.now(), stage: 0, from, values, fields: form.fields.map(({ id, label, type }) => ({ id, label, type })) }]);
     sent = to; target = '';
     redraw();
     window.scrollTo(0, 0);

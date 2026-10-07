@@ -169,3 +169,14 @@ select.perm:disabled{opacity:.8}
 .req-item dt{color:var(--muted)} .req-item dd{margin:0}
 
 .form-card.mine{border-color:var(--accent);background:#fffaf4}
+
+/* Flow */
+.kanban.flow{grid-template-columns:repeat(7,minmax(210px,1fr));overflow-x:auto;align-items:start;padding-bottom:8px}
+.col .empty{color:var(--muted);text-align:center;padding:8px}
+.req-ticket{border-left:3px solid var(--accent)}
+.req-ticket details{margin:6px 0;font-size:13px}
+.req-ticket summary{cursor:pointer;color:var(--accent)}
+.req-ticket dl{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:6px 0 0}
+.req-ticket dt{color:var(--muted)} .req-ticket dd{margin:0}
+.tk-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.seg{display:flex;gap:6px}

@@ -18,13 +18,14 @@
   const slug = t => t.toLowerCase().replace(/\s+/g, '-');
 
   /* ---------- Demo data ---------- */
-  const STAGES = ['Measure', 'Design', 'Production', 'Assembly', 'Delivery'];
+  // production pipeline, in order; stage 0 ("Request") receives requests sent from the Request page
+  const STAGES = ['Request', 'Offer', 'Measure', 'Design', 'Payment', 'Production', 'Assembly'];
   const ORDERS = [
-    { id: 1042, client: 'Ivanov', stage: 0, sum: 180000, status: 'ok' },
-    { id: 1043, client: 'Petrova', stage: 1, sum: 150000, status: 'ok' },
-    { id: 1044, client: 'Sidorov', stage: 2, sum: 200000, status: 'warn' },
-    { id: 1045, client: 'Kozlova', stage: 2, sum: 100000, status: 'ok' },
-    { id: 1046, client: 'Morozov', stage: 3, sum: 90000, status: 'bad' },
+    { id: 1042, client: 'Ivanov', stage: 1, sum: 180000, status: 'ok' },
+    { id: 1043, client: 'Petrova', stage: 2, sum: 150000, status: 'ok' },
+    { id: 1044, client: 'Sidorov', stage: 5, sum: 200000, status: 'warn' },
+    { id: 1045, client: 'Kozlova', stage: 3, sum: 100000, status: 'ok' },
+    { id: 1046, client: 'Morozov', stage: 6, sum: 90000, status: 'bad' },
     { id: 1047, client: 'Smirnova', stage: 4, sum: 50000, status: 'ok' }
   ];
   const fmt = n => n.toLocaleString('en-US').replace(/,/g, ' ');
@@ -81,12 +82,7 @@
           ${ORDERS.map(o => `<tr><td>${o.id}</td><td>${o.client}</td><td>${STAGES[o.stage]}</td><td>${fmt(o.sum)}</td><td>${pill(o.status)}</td></tr>`).join('')}</table></div>
       </div>`;
     },
-    'Flow': () => `
-      <h1>Flow</h1><p class="sub">Orders moving through production stages.</p>
-      <div class="kanban">${STAGES.map((s, i) => {
-        const items = ORDERS.filter(o => o.stage === i);
-        return `<div class="col"><h4>${s}<span>${items.length}</span></h4>${items.map(o => `<div class="ticket"><b>#${o.id}</b> ${o.client}<small>${fmt(o.sum)} ₽</small></div>`).join('')}</div>`;
-      }).join('')}</div>`,
+    // 'Flow' lives in js/flow.js
     'Archive': () => `<h1>Archive</h1><p class="sub">Completed orders.</p><div class="card"><table>
       <tr><th>#</th><th>Client</th><th>Closed</th><th>Sum</th></tr>
       ${[[1031, 'Orlov', '2026-08-14', 210000], [1029, 'Volkova', '2026-08-02', 135000], [1024, 'Lebedev', '2026-07-19', 98000]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td></tr>`).join('')}</table></div>`,
@@ -193,7 +189,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
 
-  window.Kitchens = { TABS, render, getUser: () => user };
+  window.Kitchens = { TABS, STAGES, ORDERS, fmt, render, getUser: () => user };
   renderTabs();
   render();
 })();
