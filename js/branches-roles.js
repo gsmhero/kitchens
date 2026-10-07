@@ -26,7 +26,7 @@
     const list = [
       { id: 'r1', name: 'Owner', locked: true, users: 1, perms: level(m, 2) },
       { id: 'r2', name: 'Manager', users: 2, perms: level(m, t => ['Costs', 'Agents', 'Branches and Roles'].includes(t) ? 1 : 2) },
-      { id: 'r3', name: 'Designer', users: 2, perms: level(m, only(['Flow', 'Forms', 'Product Catalogue', 'Price offers', 'Knowledge'])) },
+      { id: 'r3', name: 'Designer', users: 2, perms: level(m, only(['Flow', 'Forms', 'Product Catalogue', 'Price offers', 'Knowledge', 'Blog'])) },
       { id: 'r4', name: 'Carpenter', users: 6, perms: level(m, only(['Flow', 'Warehouse', 'Knowledge', 'ToDo'])) },
       { id: 'r5', name: 'Installer', users: 3, perms: level(m, only(['Flow', 'ToDo'], 1)) }
     ];

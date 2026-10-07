@@ -70,8 +70,7 @@
       </div>`,
     catalogue: () => window.KitchensPages.PublicCatalogue(), // js/catalogue.js: published products
     about: () => window.KitchensPages.PublicAbout(), // js/profiles.js: cards of the team profiles
-    blog: () => `<h1>Blog</h1><p class="sub">News and tips.</p>
-      <div class="grid g3">${[1, 2, 3].map(i => `<div class="card"><h3>Post title ${i}</h3><p class="sub">Short announcement placeholder.</p></div>`).join('')}</div>`,
+    blog: () => window.KitchensPages.PublicBlog(), // js/blog.js: published posts
     contacts: () => `<h1>Contacts</h1><div class="card"><p>Email: info@example.com<br>Phone: +7 000 000-00-00</p></div>`
   };
 
@@ -85,7 +84,7 @@
     // 'Warehouse' lives in js/warehouse.js
     // 'Product Catalogue' (manager) lives in js/catalogue.js
     // 'About Us' (profile editor) lives in js/profiles.js
-    'Blog': () => GUEST.blog(),
+    // 'Blog' (post editor) lives in js/blog.js
     // 'Price offers' lives in js/offers.js
     // 'Costs' lives in js/costs.js
     // 'ToDo' lives in js/todo.js
@@ -112,6 +111,9 @@
       if (route.startsWith('profile/')) { // public profile page (#profile/<name>), open to everyone
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = window.KitchensPages.Profile(route.slice(8));
+      } else if (route.startsWith('post/')) { // public blog post (#post/<id>)
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = window.KitchensPages.Post(route.slice(5));
       } else if (route.startsWith('invite/')) { // invitation link for a new employee (#invite/<token>), works without login
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = window.KitchensPages.Invite(route.slice(7));
