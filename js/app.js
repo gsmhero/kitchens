@@ -129,7 +129,8 @@
     if (user && route.startsWith('tab/')) {
       const tab = TABS.find(t => slug(t) === route.slice(4)) || TABS[0];
       $$('#tabsRow button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      view.innerHTML = (TAB_PAGES[tab] || (() => placeholder(tab)))();
+      const ext = window.KitchensPages || {};
+      view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
     } else {
       $$('#tabsRow button').forEach(b => b.classList.remove('active'));
       view.innerHTML = (GUEST[route] || GUEST.home)();
@@ -190,6 +191,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
 
+  window.Kitchens = { TABS, render };
   renderTabs();
   render();
 })();

@@ -109,3 +109,26 @@ ul.clean li{padding:8px 0;border-bottom:1px solid var(--line)}
   main{padding:14px}
   .g2{grid-template-columns:1fr}
 }
+
+/* Branches and Roles */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px}
+.section-head h2{margin:0}
+.count{font-size:13px;color:var(--muted);font-weight:400;margin-left:6px}
+.branch-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.branch-top h3{margin:0}
+.branch dl{display:grid;grid-template-columns:80px 1fr;gap:4px 8px;margin:0 0 12px;font-size:14px}
+.branch dt{color:var(--muted)} .branch dd{margin:0}
+.actions{display:flex;gap:8px}
+.btn.danger{color:var(--bad);border-color:#e8c4c1}
+.btn.danger:hover{background:#f8e1df}
+.danger-t{color:var(--bad)}
+.matrix-wrap{overflow-x:auto}
+.matrix th,.matrix td{white-space:nowrap;vertical-align:top}
+.matrix thead th{vertical-align:bottom}
+.role-h{font-weight:600;color:var(--ink);font-size:14px}
+.matrix small{display:block;color:var(--muted);font-weight:400}
+.matrix .actions{gap:10px;font-size:12px}
+select.perm{font:inherit;font-size:13px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:var(--card)}
+select.perm.lv1{background:#fbf0d4}
+select.perm.lv2{background:#e1f2e8}
+select.perm:disabled{opacity:.8}
