@@ -11,7 +11,6 @@
   const K = () => window.Kitchens;
   const esc = s => window.KitchensForms.esc(s);
   const fmtDate = t => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
-  const val = (fl, v) => fl.type === 'checkbox' ? (v ? 'Yes' : 'No') : (esc(v) || '—');
 
   const requests = () => window.KitchensRequest.all()
     .filter(r => scope === 'all' || r.to === K().getUser().name);
@@ -20,32 +19,12 @@
     <div class="ticket req-ticket">
       <div><span class="pill ok">Request</span> <b>${esc(sub.from.name)}</b></div>
       <small>${esc(sub.from.contact)} · to ${esc(to)} · ${fmtDate(sub.at)}</small>
-      <button class="link" data-fl="answers" data-to="${esc(to)}" data-id="${sub.id}">Answers</button>
+      <a class="link" href="#case/${sub.id}">Open</a>
       <div class="tk-actions">
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="Previous stage">←</button>
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="1" ${i === last ? 'disabled' : ''} title="Next stage">→</button>
       </div>
     </div>`;
-
-  // popup dialog with the full request (closed by ×, a click outside, or Esc — handled in app.js)
-  function showAnswers({ to, sub }) {
-    let m = document.getElementById('flowModal');
-    if (!m) { m = document.createElement('div'); m.className = 'modal'; m.id = 'flowModal'; document.body.appendChild(m); }
-    const stage = K().getStages()[K().stageIndex(sub.stage)].name;
-    m.innerHTML = `<div class="modal-card wide" role="dialog" aria-modal="true" aria-label="Request details">
-      <button type="button" class="close" data-close>×</button>
-      <h3>Request from ${esc(sub.from.name)}</h3>
-      <div class="req-meta">
-        <span class="pill">${esc(sub.from.contact)}</span>
-        <span class="pill">${sub.from.guest ? 'guest' : 'registered user'}</span>
-        <span class="pill ok">Stage: ${esc(stage)}</span>
-      </div>
-      <p class="sub">Sent to <b>${esc(to)}</b> · ${fmtDate(sub.at)}</p>
-      <dl class="answers">${sub.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${val(fl, sub.values[fl.id])}</dd>`).join('') || '<dd>No answers.</dd>'}</dl>
-      <button type="button" class="btn wide" data-close>Close</button>
-    </div>`;
-    m.hidden = false;
-  }
 
   window.KitchensPages.Flow = () => {
     const { ORDERS, fmt, stageIndex } = K();
@@ -74,11 +53,6 @@
     const el = e.target.closest('[data-fl]');
     if (!el) return;
     if (el.dataset.fl === 'scope') { scope = el.dataset.v; K().render(); return; }
-    if (el.dataset.fl === 'answers') {
-      const r = window.KitchensRequest.all().find(x => x.to === el.dataset.to && x.sub.id === el.dataset.id);
-      if (r) showAnswers(r);
-      return;
-    }
     if (el.dataset.fl === 'move') {
       const { to, id } = el.dataset;
       const cur = window.KitchensRequest.all().find(r => r.to === to && r.sub.id === id);

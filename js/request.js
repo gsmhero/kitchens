@@ -51,6 +51,11 @@
       } catch (e) {}
       return out;
     },
+    users,
+    // save a changed request back; false if the browser storage is full
+    replace: (to, sub) => {
+      try { localStorage.setItem(keyOf(to, 'subs'), JSON.stringify(inbox(to).map(s => s.id === sub.id ? sub : s))); return true; } catch (e) { return false; }
+    },
     setStage: (to, id, stage) => save(keyOf(to, 'subs'), inbox(to).map(s => s.id === id ? { ...s, stage } : s))
   };
 
@@ -110,6 +115,7 @@
       <div class="card req-item">
         <div class="req-top"><b>${esc(s.from.name)}</b> <span class="pill">${esc(s.from.contact)}</span>
           <span class="pill">${s.from.guest ? 'guest' : 'registered user'}</span>
+          <a class="link" href="#case/${s.id}">Open</a>
           <a class="pill ok" href="#tab/flow">Stage: ${esc(window.Kitchens.getStages()[window.Kitchens.stageIndex(s.stage)].name)}</a>
           <span class="sub">${fmtDate(s.at)}</span>
           <button class="link danger-t" data-rq="del-sub" data-id="${s.id}">delete</button></div>

@@ -132,15 +132,21 @@
     const view = $('#view');
     $$('#mainMenu a').forEach(a => a.classList.toggle('active', route === a.dataset.page));
 
+    const isShare = route.startsWith('share/'), isCase = route.startsWith('case/');
     try {
-      if (user && route.startsWith('tab/')) {
+      if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
+        $$('#tabsRow button').forEach(b => b.classList.toggle('active', isCase && b.dataset.tab === 'Flow'));
+        view.innerHTML = window.KitchensPages.Case(route.slice(isShare ? 6 : 5), isShare);
+      } else if (user && route.startsWith('tab/')) {
         const tab = TABS.find(t => slug(t) === route.slice(4)) || TABS[0];
         $$('#tabsRow button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
         const ext = window.KitchensPages || {};
         view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
       } else {
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
-        view.innerHTML = route === 'request' ? window.KitchensPages.Request() : (GUEST[route] || GUEST.home)();
+        view.innerHTML = route === 'request' ? window.KitchensPages.Request()
+          : isCase ? '<h1>Please log in</h1><div class="placeholder"><button class="link" data-open="loginModal">Log in</button> to open this request.</div>'
+          : (GUEST[route] || GUEST.home)();
       }
     } catch (err) { // never leave a blank page: show the problem instead
       console.error(err);
