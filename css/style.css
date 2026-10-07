@@ -303,3 +303,25 @@ th.num,td.num{text-align:right;white-space:nowrap}
 @media(max-width:600px){.modal-card .two{grid-template-columns:1fr}}
 
 .kb-bar input[type=checkbox]{flex:none;min-width:0;width:auto;padding:0}
+
+/* Warehouse: tabs, locations, categories */
+.wh-tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:18px}
+.wh-tabs button{font:inherit;background:none;border:0;padding:9px 18px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+.wh-tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.zone{margin-bottom:16px}
+.zone-h{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.zone-name{flex:1;font:inherit;font-weight:600;font-size:16px;padding:7px 10px;border:1px solid transparent;border-radius:8px;background:transparent}
+.zone-name:hover,.zone-name:focus,.sec-h input:hover,.sec-h input:focus,.shelf input:hover,.shelf input:focus{border-color:var(--line);background:var(--card);outline:none}
+.section-box{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;background:#fbf9f6}
+.sec-h{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.sec-h input{flex:1;font:inherit;font-weight:500;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent}
+.shelves{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.shelf{display:inline-flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:2px 6px}
+.shelf input{font:inherit;font-size:13px;border:1px solid transparent;background:transparent;padding:3px 4px;border-radius:6px;min-width:60px}
+.shelf small{color:var(--muted);background:var(--bg);border-radius:99px;padding:0 7px}
+.inline-add{display:flex;gap:6px}
+.inline-add input{flex:1;max-width:260px;font:inherit;font-size:13px;padding:6px 8px;border:1px dashed var(--line);border-radius:8px;background:var(--card)}
+.loc-pick{border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;margin:0 0 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.loc-pick legend{font-size:13px;color:var(--muted);padding:0 6px}
+.loc-pick select{margin:0}
+@media(max-width:600px){.loc-pick{grid-template-columns:1fr}}
