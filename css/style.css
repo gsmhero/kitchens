@@ -292,3 +292,14 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
 .kb-text{margin:8px 0;line-height:1.6;overflow-wrap:anywhere}
 .kb-add textarea{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;width:100%}
 .modal-card textarea{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
+
+/* Warehouse */
+th.num,td.num{text-align:right;white-space:nowrap}
+.wh-reorder{border-color:#ecd49a;background:#fffdf5;margin-bottom:16px}
+.wh-reorder h3{margin-top:0}
+.modal-card .two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.modal-card.hist{width:min(820px,96vw)}
+.inline-sel input[type=checkbox]{margin:0}
+@media(max-width:600px){.modal-card .two{grid-template-columns:1fr}}
+
+.kb-bar input[type=checkbox]{flex:none;min-width:0;width:auto;padding:0}

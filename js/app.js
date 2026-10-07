@@ -99,8 +99,7 @@
       ${[[1031, 'Orlov', '2026-08-14', 210000], [1029, 'Volkova', '2026-08-02', 135000], [1024, 'Lebedev', '2026-07-19', 98000]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td></tr>`).join('')}</table></div>`,
     // 'Stages' lives in js/stages.js
     // 'Staff' lives in js/staff.js
-    'Warehouse': () => `<h1>Warehouse</h1><div class="card"><table><tr><th>Material</th><th>In stock</th><th>Min</th><th></th></tr>
-      ${[['MDF 18mm', 12, 20, 'bad'], ['Hinges Blum', 340, 100, 'ok'], ['Edge tape white', 45, 40, 'warn'], ['Handles M2', 120, 50, 'ok']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="pill ${r[3]}">${{ ok: 'OK', warn: 'Low', bad: 'Reorder' }[r[3]]}</span></td></tr>`).join('')}</table></div>`,
+    // 'Warehouse' lives in js/warehouse.js
     'Product Catalogue': () => GUEST.catalogue(),
     'About Us': () => GUEST.about(),
     'Blog': () => GUEST.blog(),
