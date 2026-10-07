@@ -21,15 +21,23 @@
   // production pipeline, in order; stage 0 ("Request") receives requests sent from the Request page
   // Stages are editable (Stages tab) and saved as [{ id, name }]. Items refer to a stage by id, so renaming and
   // reordering never breaks them; an item whose stage id no longer exists falls back to the first stage.
-  const DEFAULT_STAGES = ['Request', 'Offer', 'Measure', 'Design', 'Payment', 'Production', 'Assembly']
+  // The last stage is always "Archive" (id "archive", or any stage named Archive): requests in it leave the Flow board and
+  // are listed in the Archive tab. It cannot be deleted or moved; other stages can be added, renamed and reordered.
+  const DEFAULT_STAGES = ['Request', 'Offer', 'Measure', 'Design', 'Payment', 'Production', 'Assembly', 'Archive']
     .map(name => ({ id: name.toLowerCase(), name }));
-  let stages = store.get('stages') || DEFAULT_STAGES.map(s => ({ ...s }));
+  const isArchiveStage = s => !!s && (s.id === 'archive' || String(s.name).trim().toLowerCase() === 'archive');
+  const withArchiveLast = list => { // keeps exactly one archive stage and puts it at the end (also upgrades older saved lists)
+    const arch = list.find(isArchiveStage) || { id: 'archive', name: 'Archive' };
+    return [...list.filter(s => !isArchiveStage(s)), arch];
+  };
+  let stages = withArchiveLast(store.get('stages') || DEFAULT_STAGES.map(s => ({ ...s })));
   const stageIndex = ref => {
     if (typeof ref === 'number') ref = (DEFAULT_STAGES[ref] || {}).id; // legacy: stage stored as a position
     const i = stages.findIndex(s => s.id === ref);
     return i < 0 ? 0 : i;
   };
-  const setStages = list => { stages = list; store.set('stages', stages); };
+  const setStages = list => { stages = withArchiveLast(list); store.set('stages', stages); };
+  const isArchive = ref => isArchiveStage(stages[stageIndex(ref)]);
   const ORDERS = [
     { id: 1042, client: 'Ivanov', stage: 'offer', sum: 180000, status: 'ok' },
     { id: 1043, client: 'Petrova', stage: 'measure', sum: 150000, status: 'ok' },
@@ -71,9 +79,7 @@
   const TAB_PAGES = {
     // 'Dashboard' lives in js/dashboard.js
     // 'Flow' lives in js/flow.js
-    'Archive': () => `<h1>Archive</h1><p class="sub">Completed orders.</p><div class="card"><table>
-      <tr><th>#</th><th>Client</th><th>Closed</th><th>Sum</th></tr>
-      ${[[1031, 'Orlov', '2026-08-14', 210000], [1029, 'Volkova', '2026-08-02', 135000], [1024, 'Lebedev', '2026-07-19', 98000]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td></tr>`).join('')}</table></div>`,
+    // 'Archive' lives in js/archive.js
     // 'Stages' lives in js/stages.js
     // 'Staff' lives in js/staff.js
     // 'Warehouse' lives in js/warehouse.js
@@ -191,7 +197,9 @@
 
   window.Kitchens = {
     TABS, ORDERS, fmt, render, login, getUser: () => user,
-    getStages: () => stages.map(s => ({ ...s })), setStages, stageIndex, defaultStages: () => DEFAULT_STAGES.map(s => ({ ...s }))
+    getStages: () => stages.map(s => ({ ...s })), setStages, stageIndex, defaultStages: () => DEFAULT_STAGES.map(s => ({ ...s })),
+    flowStages: () => stages.filter(s => !isArchiveStage(s)).map(s => ({ ...s })), // stages shown on the Flow board
+    isArchive, archiveStageId: () => stages.find(isArchiveStage).id
   };
   renderTabs();
   render();

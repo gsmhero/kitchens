@@ -56,7 +56,10 @@
     replace: (to, sub) => {
       try { localStorage.setItem(keyOf(to, 'subs'), JSON.stringify(inbox(to).map(s => s.id === sub.id ? sub : s))); return true; } catch (e) { return false; }
     },
-    setStage: (to, id, stage) => save(keyOf(to, 'subs'), inbox(to).map(s => s.id === id ? { ...s, stage } : s))
+    // archivedAt: time the request was archived (0 when it is not in the Archive stage)
+    setStage: (to, id, stage, archivedAt = 0) => save(keyOf(to, 'subs'), inbox(to).map(s => s.id === id ? { ...s, stage, archivedAt, prevStage: archivedAt ? (s.archivedAt ? s.prevStage : s.stage) : s.prevStage } : s)),
+    // permanently delete a request (used by the Archive tab)
+    remove: (to, id) => save(keyOf(to, 'subs'), inbox(to).filter(s => s.id !== id))
   };
 
   let target = '';      // user the visitor sends a request to

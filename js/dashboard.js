@@ -249,7 +249,9 @@
 
   function pipeline() {
     const stages = K().getStages(), reqs = window.KitchensRequest.all();
-    const counts = stages.map((s, i) => ({ name: s.name, n: reqs.filter(r => K().stageIndex(r.sub.stage) === i).length + K().ORDERS.filter(o => K().stageIndex(o.stage) === i).length }));
+    // the Archive stage is not work in progress
+    const counts = stages.map((s, i) => ({ s, i, name: s.name, n: reqs.filter(r => K().stageIndex(r.sub.stage) === i).length + K().ORDERS.filter(o => K().stageIndex(o.stage) === i).length }))
+      .filter(x => x.s.id !== K().archiveStageId());
     const max = Math.max(1, ...counts.map(x => x.n));
     return `<div class="card"><h3>Work in progress by stage</h3>
       ${counts.map(x => `<div class="hbar"><span>${esc(x.name)}</span><div><i style="width:${x.n / max * 100}%"></i></div><b>${x.n}</b></div>`).join('')}

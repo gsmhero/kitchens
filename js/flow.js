@@ -23,17 +23,18 @@
       <div class="tk-actions">
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="Previous stage">←</button>
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="1" ${i === last ? 'disabled' : ''} title="Next stage">→</button>
+        <button class="btn small" data-fl="archive" data-to="${esc(to)}" data-id="${sub.id}" title="Move to the Archive tab">📦 Archive</button>
       </div>
     </div>`;
 
   window.KitchensPages.Flow = () => {
     const { ORDERS, fmt, stageIndex } = K();
-    const stages = K().getStages();
+    const stages = K().flowStages(); // the Archive stage is not a column: archived requests live in the Archive tab
     const reqs = requests();
     const last = stages.length - 1;
     return `
     <h1>Flow</h1>
-    <div class="section-head"><p class="sub" style="margin:0">Requests and orders moving through the stages. New requests arrive in “${esc(stages[0].name)}”. Stages can be edited in the <a class="link" href="#tab/stages">Stages</a> tab.</p>
+    <div class="section-head"><p class="sub" style="margin:0">Requests and orders moving through the stages. New requests arrive in “${esc(stages[0].name)}”. Finished requests go to the <a class="link" href="#tab/archive">Archive</a>. Stages can be edited in the <a class="link" href="#tab/stages">Stages</a> tab.</p>
       <span class="seg">
         <button class="btn small ${scope === 'all' ? 'primary' : ''}" data-fl="scope" data-v="all">All requests</button>
         <button class="btn small ${scope === 'mine' ? 'primary' : ''}" data-fl="scope" data-v="mine">Sent to me</button>
@@ -57,9 +58,13 @@
       const { to, id } = el.dataset;
       const cur = window.KitchensRequest.all().find(r => r.to === to && r.sub.id === id);
       if (!cur) return;
-      const stages = K().getStages();
+      const stages = K().flowStages();
       const next = Math.min(stages.length - 1, Math.max(0, K().stageIndex(cur.sub.stage) + (+el.dataset.dir)));
       window.KitchensRequest.setStage(to, id, stages[next].id);
+      K().render();
+    }
+    if (el.dataset.fl === 'archive') {
+      window.KitchensRequest.setStage(el.dataset.to, el.dataset.id, K().archiveStageId(), Date.now());
       K().render();
     }
   });

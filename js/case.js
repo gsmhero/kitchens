@@ -276,7 +276,12 @@
         return;
       }
       case 'save-stage':
-        mutate((c, sub) => { c.notes = document.getElementById('caseNotes').value; sub.stage = document.getElementById('caseStage').value; });
+        mutate((c, sub) => {
+          const before = sub.stage, was = !!sub.archivedAt;
+          c.notes = document.getElementById('caseNotes').value; sub.stage = document.getElementById('caseStage').value;
+          sub.archivedAt = K().isArchive(sub.stage) ? (sub.archivedAt || Date.now()) : 0; // the Archive stage moves the request to the Archive tab
+          if (sub.archivedAt && !was) sub.prevStage = before; // remembered so the Archive tab can restore it
+        });
         return done();
       case 'add-block': mutate(c => c.blocks.push(newBlock(document.getElementById('newBlock').value))); return done();
       case 'rm-block': if (confirm('Delete this block with all its content?')) { mutate(c => { c.blocks = c.blocks.filter(b => b.id !== bid); }); done(); } return;

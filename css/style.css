@@ -546,3 +546,6 @@ h4.mini{margin:14px 0 6px;font-size:14px}
 .chip.pr-urgent{background:#f8e1df;border-color:#e8c4c1}.chip.pr-high{background:#fbf0d4;border-color:#ecd49a}
 .late-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
 .late-row .sub{white-space:nowrap}
+.stage-list li.is-archive{background:#f7f3ed;border-radius:8px;padding:8px 10px;margin-top:6px}
+.row-actions select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);margin-left:6px}
+.row-actions a.btn{text-decoration:none;display:inline-block}
