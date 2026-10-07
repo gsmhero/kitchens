@@ -179,6 +179,16 @@
   /* ---------- Events ---------- */
   const closeModals = () => $$('.modal').forEach(m => m.hidden = true);
 
+  // In-app links (href="#...") are handled here instead of by the browser: on hosts that set a <base> URL
+  // (e.g. the htmlpreview.github.io proxy) a plain "#route" link would leave the page and show the raw source.
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    const target = a.getAttribute('href').slice(1);
+    if (location.hash.slice(1) === target) render(); else location.hash = target;
+  }, true);
+
   document.addEventListener('click', e => {
     const open = e.target.closest('[data-open]');
     if (open) { closeModals(); $('#' + open.dataset.open).hidden = false; return; }

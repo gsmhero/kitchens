@@ -152,7 +152,7 @@
     const { to, sub } = r;
     const c = sub.case || { notes: '', blocks: [] };
     const stages = K().getStages(), cur = K().stageIndex(sub.stage);
-    const url = location.origin + location.pathname + '#share/' + id;
+    const url = location.href.split('#')[0] + '#share/' + id; // keeps the ?query of proxy hosts such as htmlpreview
     const reqOpen = !collapsed.has('req');
     return `
     <div class="case-top">
