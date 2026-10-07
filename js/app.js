@@ -102,11 +102,7 @@
     'Blog': () => GUEST.blog(),
     // 'Price offers' lives in js/offers.js
     // 'Costs' lives in js/costs.js
-    'ToDo': () => {
-      const tasks = store.get('todo') || [['Call supplier about MDF', false], ['Send offer #89', false], ['Check Assembly team schedule', true]];
-      return `<h1>ToDo</h1><div class="card"><ul class="clean todo" id="todoList">
-        ${tasks.map((t, i) => `<li><label><input type="checkbox" data-i="${i}" ${t[1] ? 'checked' : ''}><span>${t[0]}</span></label></li>`).join('')}</ul></div>`;
-    }
+    // 'ToDo' lives in js/todo.js
   };
   const placeholder = t => `<h1>${t}</h1><div class="placeholder">“${t}” section — to be built.</div>`;
 
@@ -206,12 +202,6 @@
   $('#regForm').addEventListener('submit', e => {
     e.preventDefault();
     login(new FormData(e.target).get('name'));
-  });
-  document.addEventListener('change', e => {
-    if (e.target.closest('#todoList')) {
-      const tasks = $$('#todoList li').map(li => [$('span', li).textContent, $('input', li).checked]);
-      store.set('todo', tasks);
-    }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);

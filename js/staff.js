@@ -25,6 +25,8 @@
   const persist = () => save('staff', staff);
 
   window.KitchensStaff = {
+    // names of active employees (for assignee pickers)
+    names: () => { init(); return staff.filter(x => x.status === 'active').map(x => x.name); },
     roleIdOf: name => { init(); const e = staff.find(x => x.status === 'active' && x.name.toLowerCase() === String(name).toLowerCase()); return e ? e.roleId : ''; },
     countBy: (key, id) => { init(); return staff.filter(e => e[key] === id).length; }
   };
