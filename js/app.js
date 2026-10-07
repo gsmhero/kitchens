@@ -133,10 +133,7 @@
       view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
     } else {
       $$('#tabsRow button').forEach(b => b.classList.remove('active'));
-      if (route === 'request') {
-        view.innerHTML = user ? window.KitchensPages.Request()
-          : '<h1>Request</h1><div class="placeholder">Please <button class="link" data-open="loginModal">log in</button> or <button class="link" data-open="regModal">register</button> to send a request.</div>';
-      } else view.innerHTML = (GUEST[route] || GUEST.home)();
+      view.innerHTML = route === 'request' ? window.KitchensPages.Request() : (GUEST[route] || GUEST.home)();
     }
     renderNotifs();
   }
@@ -155,6 +152,8 @@
   function login(name) {
     user = { name };
     store.set('user', user);
+    const known = store.get('users') || []; // registry of registered users (Request page lists them)
+    if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
     location.hash = 'tab/dashboard';
     closeModals(); render();
   }
