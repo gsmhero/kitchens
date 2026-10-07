@@ -31,6 +31,9 @@
   /* shared helpers for other pages (e.g. Request) */
   window.KitchensForms = {
     TYPES, esc, uid, f, inputFor: (...a) => inputFor(...a),
+    // forms as plain data for other pages (e.g. product types use a form as their list of fields)
+    list: () => { init(); return JSON.parse(JSON.stringify(forms)); },
+    create: x => { init(); const form = { id: uid(), name: x.name, desc: x.desc || '', roles: [], fields: x.fields }; forms.push(form); persist(); return form.id; },
     // opens the editor for the current user's Request form (called from the Request page)
     openRequestEditor: () => { pendingReq = true; location.hash = 'tab/forms'; },
     template: name => { init(); const x = forms.find(v => v.name === name) || defaultForms().find(v => v.name === name); return x ? JSON.parse(JSON.stringify(x)) : null; }

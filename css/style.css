@@ -325,3 +325,27 @@ th.num,td.num{text-align:right;white-space:nowrap}
 .loc-pick legend{font-size:13px;color:var(--muted);padding:0 6px}
 .loc-pick select{margin:0}
 @media(max-width:600px){.loc-pick{grid-template-columns:1fr}}
+
+/* Product catalogue */
+.p-thumb{width:64px}
+.p-thumb img,.p-thumb .no-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;display:block}
+.no-photo{background:repeating-linear-gradient(45deg,#e8dfd2,#e8dfd2 10px,#efe8dc 10px,#efe8dc 20px)}
+.type-card .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+.chip{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px}
+.chip small{color:var(--muted)}
+.p-photos{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+.p-photos .ph{width:84px;height:84px;aspect-ratio:auto}
+fieldset.spec{display:block;max-height:260px;overflow:auto}
+fieldset.spec .fill{max-width:none}
+.pub-check{margin:6px 0 10px}
+.pub-card{cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.pub-card:hover,.pub-card:focus{border-color:var(--accent);outline:none}
+.pub-img{aspect-ratio:4/3;border-radius:8px;overflow:hidden;margin-bottom:6px;background:var(--bg)}
+.pub-img img,.pub-img .no-photo{width:100%;height:100%;object-fit:cover;display:block}
+.pub-specs{display:flex;gap:4px;flex-wrap:wrap}
+.pub-price{font-weight:700;font-size:18px;margin:8px 0}
+.pub-card .pub-price{margin:auto 0 0;padding-top:6px}
+.pub-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.pub-photos img{width:100%;border-radius:8px;aspect-ratio:4/3;object-fit:cover}
+.modal-card a.btn.wide{text-align:center;display:block}

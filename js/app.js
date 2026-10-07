@@ -60,10 +60,7 @@
         ${['Design', 'Production', 'Installation'].map((t, i) => `
           <div class="card"><h3>${i + 1}. ${t}</h3><p class="sub">Placeholder text describing the ${t.toLowerCase()} stage of your project.</p></div>`).join('')}
       </div>`,
-    catalogue: () => `
-      <h1>Catalogue</h1><p class="sub">A selection of our work. Register to request a price offer.</p>
-      <div class="grid g4">${['Modern', 'Classic', 'Loft', 'Scandi', 'Minimal', 'Country', 'Corner', 'Island'].map(n => `
-        <div class="card"><div class="product"></div><b>${n} kitchen</b><div class="sub">from ${fmt(90000 + n.length * 12000)} ₽</div></div>`).join('')}</div>`,
+    catalogue: () => window.KitchensPages.PublicCatalogue(), // js/catalogue.js: published products
     about: () => `<h1>About Us</h1><p class="sub">Small family workshop producing kitchens and cabinet furniture.</p>
       <div class="card"><p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.</p></div>`,
     blog: () => `<h1>Blog</h1><p class="sub">News and tips.</p>
@@ -100,7 +97,7 @@
     // 'Stages' lives in js/stages.js
     // 'Staff' lives in js/staff.js
     // 'Warehouse' lives in js/warehouse.js
-    'Product Catalogue': () => GUEST.catalogue(),
+    // 'Product Catalogue' (manager) lives in js/catalogue.js
     'About Us': () => GUEST.about(),
     'Blog': () => GUEST.blog(),
     'Price offers': () => `<h1>Price offers</h1><div class="card"><table><tr><th>#</th><th>Client</th><th>Sum</th><th>Status</th></tr>
