@@ -30,13 +30,18 @@
     ];
   };
 
-  let branches = load('branches', null) || defaultBranches();
-  let roles = load('roles', null) || defaultRoles();
+  let branches, roles; // initialised lazily: window.Kitchens (TABS) is not ready when this file loads
+  const init = () => {
+    if (branches) return;
+    branches = load('branches', null) || defaultBranches();
+    roles = load('roles', null) || defaultRoles();
+  };
   const persist = () => { save('branches', branches); save('roles', roles); };
   const redraw = () => window.Kitchens.render();
 
   /* ---------- Page ---------- */
   window.KitchensPages['Branches and Roles'] = () => {
+    init();
     const mods = modules();
     return `
     <h1>Branches and Roles</h1>
@@ -67,7 +72,7 @@
       <div class="matrix-wrap"><table class="matrix">
         <thead><tr><th>Section</th>
           ${roles.map(r => `<th><div class="role-h">${esc(r.name)}${r.locked ? ' 🔒' : ''}</div>
-            <small>${esc(r.users)} users</small>
+            <small>${esc(r.users)} ${r.users === 1 ? 'user' : 'users'}</small>
             <div class="actions">
               <button class="link" data-br="edit-role" data-id="${r.id}">rename</button>
               ${r.locked ? '' : `<button class="link danger-t" data-br="del-role" data-id="${r.id}">delete</button>`}
