@@ -133,7 +133,10 @@
       view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
     } else {
       $$('#tabsRow button').forEach(b => b.classList.remove('active'));
-      view.innerHTML = (GUEST[route] || GUEST.home)();
+      if (route === 'request') {
+        view.innerHTML = user ? window.KitchensPages.Request()
+          : '<h1>Request</h1><div class="placeholder">Please <button class="link" data-open="loginModal">log in</button> or <button class="link" data-open="regModal">register</button> to send a request.</div>';
+      } else view.innerHTML = (GUEST[route] || GUEST.home)();
     }
     renderNotifs();
   }
@@ -191,7 +194,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
 
-  window.Kitchens = { TABS, render };
+  window.Kitchens = { TABS, render, getUser: () => user };
   renderTabs();
   render();
 })();

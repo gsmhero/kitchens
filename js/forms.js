@@ -27,6 +27,12 @@
   const persist = () => { save('forms', forms); save('formSubs', subs); };
   const redraw = () => window.Kitchens.render();
 
+  /* shared helpers for other pages (e.g. Request) */
+  window.KitchensForms = {
+    TYPES, esc, uid, f, inputFor: (...a) => inputFor(...a),
+    template: name => { init(); const x = forms.find(v => v.name === name) || defaultForms().find(v => v.name === name); return x ? JSON.parse(JSON.stringify(x)) : null; }
+  };
+
   /* view state: list | build | fill | subs */
   let view = { mode: 'list', id: null };
   let draft = null;
