@@ -188,3 +188,9 @@ select.perm:disabled{opacity:.8}
 .stage-list input{flex:1;min-width:120px;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
 .stage-add{display:flex;gap:10px;margin-top:4px}
 .stage-add input{flex:1;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+
+/* Flow: request details dialog */
+.modal-card.wide{width:min(520px,94vw);max-height:90vh;overflow:auto}
+.req-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.answers{display:grid;grid-template-columns:minmax(110px,180px) 1fr;gap:8px 14px;margin:0 0 16px;font-size:14px}
+.answers dt{color:var(--muted)} .answers dd{margin:0;overflow-wrap:anywhere}
