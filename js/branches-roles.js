@@ -30,7 +30,7 @@
       { id: 'r4', name: 'Carpenter', users: 6, perms: level(m, only(['Flow', 'Warehouse', 'Knowledge', 'ToDo'])) },
       { id: 'r5', name: 'Installer', users: 3, perms: level(m, only(['Flow', 'ToDo'], 1)) }
     ];
-    list.forEach(r => { r.perms[COSTS_SIT] = SIT_DEFAULT(r); });
+    list.forEach(r => { r.perms[COSTS_SIT] = SIT_DEFAULT(r); if (['r4', 'r5'].includes(r.id)) r.perms['Agents'] = 2; });
     return list;
   };
   // workshop and field roles buy materials / travel, so they may add situation costs by default
@@ -44,6 +44,11 @@
     // roles saved before an extra permission row existed get a sensible default for it
     let changed = false;
     roles.forEach(r => { if (r.perms[COSTS_SIT] === undefined) { r.perms[COSTS_SIT] = SIT_DEFAULT(r); changed = true; } });
+    // one-time: field roles (Carpenter, Installer) get Edit on the Agents tab, where they fill in measures and costs
+    if (!load('rolesAgentsDefault', false)) {
+      roles.forEach(r => { if (['r4', 'r5'].includes(r.id) && !r.perms['Agents']) { r.perms['Agents'] = 2; changed = true; } });
+      save('rolesAgentsDefault', true);
+    }
     if (changed) save('roles', roles);
   };
   const persist = () => { save('branches', branches); save('roles', roles); };

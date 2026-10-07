@@ -425,3 +425,15 @@ tfoot th{border-bottom:0;border-top:2px solid var(--ink);font-weight:700}
 .td-dialog .inline-add{margin-top:6px}
 .td-dialog .inline-add input{max-width:none}
 @media(max-width:700px){.td-dialog .two{grid-template-columns:1fr}.td-board{grid-template-columns:repeat(3,260px)}}
+
+/* Agents */
+.ag-card{margin-bottom:16px}
+.ag-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.ag-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ag-measure{margin-bottom:12px}
+.ag-all{margin-bottom:12px}
+.ag-cost{max-width:720px;margin-bottom:24px}
+.ag-cost label{display:block;margin-bottom:10px;font-size:14px}
+.ag-cost input,.ag-cost select{display:block;width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card)}
+.ag-cost .two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:600px){.ag-cost .two{grid-template-columns:1fr}}

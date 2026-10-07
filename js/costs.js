@@ -59,6 +59,22 @@
   };
   const canEditSit = (p, e) => p.manage || (p.add && e.by === (me() || {}).name);
 
+  /* API for the Agents page: employees add and manage their OWN situation costs (needs the situational permission) */
+  window.KitchensCosts = {
+    categories: SIT_CATS,
+    canAdd: () => { init(); return perms().add; },
+    mine: () => { init(); const n = (me() || {}).name; return db.situational.filter(e => e.by === n).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at); },
+    add: rec => {
+      init();
+      if (!perms().add) return false;
+      db.situational.push({ id: uid(), by: (me() || {}).name || 'Guest', at: Date.now(), date: rec.date, amount: num(rec.amount), category: rec.category, description: rec.description, requestId: rec.requestId || '', branchId: '' });
+      persist(); return true;
+    },
+    canEdit: id => { init(); const e = db.situational.find(x => x.id === id); return !!e && canEditSit(perms(), e); },
+    edit: id => { init(); const e = db.situational.find(x => x.id === id); if (e && canEditSit(perms(), e)) sitDialog(e); },
+    remove: id => { init(); const e = db.situational.find(x => x.id === id); if (e && canEditSit(perms(), e)) { db.situational = db.situational.filter(x => x !== e); persist(); return true; } return false; }
+  };
+
   /* ---------- state ---------- */
   let tab = 'situational';
   let month = 'all', catF = '', query = '';
