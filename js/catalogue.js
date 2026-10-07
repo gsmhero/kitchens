@@ -48,6 +48,20 @@
   }
   const init = () => { if (!db) { db = load('catalogue', null) || seed(); save('catalogue', db); } };
 
+  // products as plain data for other pages (Price offers pick lines from here)
+  window.KitchensCatalogue = {
+    products: () => {
+      init();
+      return db.products.map(p => {
+        const t = db.types.find(x => x.id === p.typeId);
+        return { id: p.id, name: p.name, price: p.price, desc: p.desc, published: p.published, typeId: p.typeId, typeName: t ? t.name : '',
+          photo: p.photos[0] || '', specs: t ? fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]))
+            .map(fl => ({ label: fl.label, value: fl.type === 'checkbox' ? 'Yes' : String(p.values[fl.id]) })) : [] };
+      });
+    },
+    types: () => { init(); return db.types.map(t => ({ id: t.id, name: t.name })); }
+  };
+
   const formOf = t => FF().list().find(x => x.id === t.formId);
   // live fields from the form; falls back to the last known copy if the form was deleted
   const fieldsOf = t => { const fm = formOf(t); if (fm) { t.snapshot = fm.fields; return fm.fields; } return t.snapshot || []; };

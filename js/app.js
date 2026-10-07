@@ -100,8 +100,7 @@
     // 'Product Catalogue' (manager) lives in js/catalogue.js
     'About Us': () => GUEST.about(),
     'Blog': () => GUEST.blog(),
-    'Price offers': () => `<h1>Price offers</h1><div class="card"><table><tr><th>#</th><th>Client</th><th>Sum</th><th>Status</th></tr>
-      ${[[88, 'Petrova', 150000, 'ok'], [89, 'Romanov', 175000, 'warn'], [90, 'Frolova', 95000, 'warn']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${fmt(r[2])}</td><td><span class="pill ${r[3]}">${r[3] === 'ok' ? 'Accepted' : 'Sent'}</span></td></tr>`).join('')}</table></div>`,
+    // 'Price offers' lives in js/offers.js
     'Costs': () => `<h1>Costs</h1><div class="grid g3">
       ${[['Materials', 420000], ['Salaries', 310000], ['Rent & utilities', 85000]].map(r => `<div class="card kpi"><div class="l">${r[0]}</div><div class="n">${fmt(r[1])} ₽</div></div>`).join('')}</div>`,
     'ToDo': () => {

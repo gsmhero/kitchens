@@ -349,3 +349,28 @@ fieldset.spec .fill{max-width:none}
 .pub-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
 .pub-photos img{width:100%;border-radius:8px;aspect-ratio:4/3;object-fit:cover}
 .modal-card a.btn.wide{text-align:center;display:block}
+
+/* Price offers */
+.po-lines input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;min-width:70px;background:var(--card)}
+.po-lines input.narrow{width:80px;min-width:0}
+.po-totals{margin:14px 0 0 auto;max-width:380px}
+.po-totals>div{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid var(--line);align-items:center}
+.po-totals .grand{font-size:20px;border-bottom:0;border-top:2px solid var(--ink)}
+.po-totals input{font:inherit;padding:4px 6px;border:1px solid var(--line);border-radius:6px;margin:0 4px}
+.pick-list{max-height:55vh;overflow:auto;margin-bottom:12px}
+.pick-row{display:grid;grid-template-columns:56px 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.pick-row .p-thumb{width:56px}
+.pick-row .num{white-space:nowrap}
+.doc-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.po-doc{max-width:820px;margin:0 auto;padding:32px}
+.po-doc-h{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:18px}
+.po-doc-h h2{margin:0}
+.po-doc-no{text-align:right}
+.po-doc-client{margin-bottom:18px}
+.po-notes{margin-top:20px;background:var(--bg);padding:10px 14px;border-radius:8px}
+@media print{
+  .topbar,.tabs-row,.footer,.no-print,.modal{display:none!important}
+  body{background:#fff}
+  main{padding:0;max-width:none}
+  .po-doc{border:0;box-shadow:none;padding:0;max-width:none}
+}
