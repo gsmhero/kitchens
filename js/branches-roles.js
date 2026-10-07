@@ -39,6 +39,8 @@
   const persist = () => { save('branches', branches); save('roles', roles); };
   const redraw = () => window.Kitchens.render();
 
+  window.KitchensBranches = { list: () => { init(); return branches.map(b => ({ id: b.id, name: b.name })); } };
+
   /* roles API shared with other pages (the Forms editor assigns forms to roles and edits roles) */
   window.KitchensRoles = {
     list: () => { init(); return roles.map(r => ({ id: r.id, name: r.name, locked: !!r.locked })); },
@@ -60,7 +62,7 @@
     <div class="grid g3">
       ${branches.map(b => `
         <div class="card branch">
-          <div class="branch-top"><h3>${esc(b.name)}</h3><span class="pill">${esc(b.staff)} staff</span></div>
+          <div class="branch-top"><h3>${esc(b.name)}</h3><span class="pill">${window.KitchensStaff ? window.KitchensStaff.countBy('branchId', b.id) : esc(b.staff)} staff</span></div>
           <dl>
             <dt>City</dt><dd>${esc(b.city)}</dd>
             <dt>Address</dt><dd>${esc(b.address)}</dd>
@@ -80,7 +82,7 @@
       <div class="matrix-wrap"><table class="matrix">
         <thead><tr><th>Section</th>
           ${roles.map(r => `<th><div class="role-h">${esc(r.name)}${r.locked ? ' 🔒' : ''}</div>
-            <small>${esc(r.users)} ${r.users === 1 ? 'user' : 'users'}</small>
+            <small>${(n => `${n} ${n === 1 ? 'user' : 'users'}`)(window.KitchensStaff ? window.KitchensStaff.countBy('roleId', r.id) : r.users)}</small>
             <div class="actions">
               <button class="link" data-br="edit-role" data-id="${r.id}">rename</button>
               ${r.locked ? '' : `<button class="link danger-t" data-br="del-role" data-id="${r.id}">delete</button>`}

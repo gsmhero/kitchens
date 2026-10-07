@@ -257,3 +257,11 @@ label.btn{display:inline-block}
 .role-edit li{display:flex;gap:10px;align-items:center}
 .role-edit input{flex:1;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
 .form-card .meta{flex-wrap:wrap}
+
+/* Staff */
+.row-actions{white-space:nowrap;text-align:right}
+.row-actions .btn,.row-actions .link{margin-left:6px}
+.modal-card a.btn{text-decoration:none;display:inline-block}
+.modal-card select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card)}
+.modal-card .actions{flex-wrap:wrap;margin:10px 0}
+#inviteUrl{font-size:12px}

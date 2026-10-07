@@ -98,8 +98,7 @@
       <tr><th>#</th><th>Client</th><th>Closed</th><th>Sum</th></tr>
       ${[[1031, 'Orlov', '2026-08-14', 210000], [1029, 'Volkova', '2026-08-02', 135000], [1024, 'Lebedev', '2026-07-19', 98000]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td></tr>`).join('')}</table></div>`,
     // 'Stages' lives in js/stages.js
-    'Staff': () => `<h1>Staff</h1><div class="card"><table><tr><th>Name</th><th>Role</th><th>Branch</th></tr>
-      ${[['A. Smith', 'Manager', 'Main'], ['B. Jones', 'Designer', 'Main'], ['C. Brown', 'Carpenter', 'Workshop'], ['D. Davis', 'Installer', 'Workshop']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div>`,
+    // 'Staff' lives in js/staff.js
     'Warehouse': () => `<h1>Warehouse</h1><div class="card"><table><tr><th>Material</th><th>In stock</th><th>Min</th><th></th></tr>
       ${[['MDF 18mm', 12, 20, 'bad'], ['Hinges Blum', 340, 100, 'ok'], ['Edge tape white', 45, 40, 'warn'], ['Handles M2', 120, 50, 'ok']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="pill ${r[3]}">${{ ok: 'OK', warn: 'Low', bad: 'Reorder' }[r[3]]}</span></td></tr>`).join('')}</table></div>`,
     'Product Catalogue': () => GUEST.catalogue(),
@@ -134,7 +133,10 @@
 
     const isShare = route.startsWith('share/'), isCase = route.startsWith('case/');
     try {
-      if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
+      if (route.startsWith('invite/')) { // invitation link for a new employee (#invite/<token>), works without login
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = window.KitchensPages.Invite(route.slice(7));
+      } else if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
         $$('#tabsRow button').forEach(b => b.classList.toggle('active', isCase && b.dataset.tab === 'Flow'));
         view.innerHTML = window.KitchensPages.Case(route.slice(isShare ? 6 : 5), isShare);
       } else if (user && route.startsWith('tab/')) {
@@ -166,8 +168,8 @@
   }
 
   /* ---------- Auth ---------- */
-  function login(name) {
-    user = { name };
+  function login(name, roleId) {
+    user = roleId ? { name, roleId } : { name };
     store.set('user', user);
     const known = store.get('users') || []; // registry of registered users (Request page lists them)
     if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
@@ -221,7 +223,7 @@
   window.addEventListener('hashchange', render);
 
   window.Kitchens = {
-    TABS, ORDERS, fmt, render, getUser: () => user,
+    TABS, ORDERS, fmt, render, login, getUser: () => user,
     getStages: () => stages.map(s => ({ ...s })), setStages, stageIndex, defaultStages: () => DEFAULT_STAGES.map(s => ({ ...s }))
   };
   renderTabs();
