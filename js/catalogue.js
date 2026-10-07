@@ -44,6 +44,7 @@
       prod(cab, 'Base cabinet 600 with drawers', 18500, 'Three drawers on soft-close slides.', { 'Width, mm': 600, 'Height, mm': 720, 'Depth, mm': 560, 'Body material': 'Laminated chipboard 18 mm', 'Soft-close': true }),
       prod(cab, 'Wall cabinet 800', 9800, 'Two doors, adjustable shelf.', { 'Width, mm': 800, 'Height, mm': 720, 'Depth, mm': 320, 'Body material': 'Laminated chipboard 18 mm', 'Soft-close': true }, false)
     ];
+    ['B. Jones', 'B. Jones', 'C. Brown', 'C. Brown'].forEach((a, i) => { products[i].author = a; }); // demo authors (their profiles are in About Us)
     return { types, products };
   }
   const init = () => { if (!db) { db = load('catalogue', null) || seed(); save('catalogue', db); } };
@@ -54,7 +55,7 @@
       init();
       return db.products.map(p => {
         const t = db.types.find(x => x.id === p.typeId);
-        return { id: p.id, name: p.name, price: p.price, desc: p.desc, published: p.published, typeId: p.typeId, typeName: t ? t.name : '',
+        return { id: p.id, name: p.name, price: p.price, desc: p.desc, published: p.published, typeId: p.typeId, typeName: t ? t.name : '', author: p.author || '',
           photo: p.photos[0] || '', specs: t ? fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]))
             .map(fl => ({ label: fl.label, value: fl.type === 'checkbox' ? 'Yes' : String(p.values[fl.id]) })) : [] };
       });
@@ -157,6 +158,13 @@
     ${tab === 'types' ? typesView() : productsView()}`;
   };
 
+  // "by <author>" — a link to the author's public profile (edited in the About Us tab) when that profile exists
+  const authorHtml = p => {
+    if (!p.author) return '';
+    const pr = window.KitchensProfiles.get(p.author);
+    return `<div class="pub-author">by ${pr ? `<a class="link" href="${esc(window.KitchensProfiles.url(p.author))}">${esc(pr.name || p.author)}</a>` : esc(p.author)}</div>`;
+  };
+
   /* ---------- public catalogue (#catalogue) ---------- */
   function publicList() {
     const t = pubQuery.toLowerCase().split(/\s+/).filter(Boolean);
@@ -167,6 +175,7 @@
         <div class="pub-img">${thumb(p)}</div>
         <b>${esc(p.name)}</b>
         <div class="sub">${esc((typeOf(p.typeId) || { name: '' }).name)}</div>
+        ${authorHtml(p)}
         <div class="pub-specs">${specs(p, 3).map(fl => `<span class="chip">${esc(fl.label)}: ${shown(fl, p.values[fl.id])}</span>`).join('')}</div>
         <div class="pub-price">${money(p.price)}</div>
       </article>`).join('') || '<div class="placeholder">No products found.</div>';
@@ -200,6 +209,7 @@
       <div class="pub-photos">${p.photos.map(src => `<img src="${src}" alt="">`).join('') || '<div class="pub-img"><div class="no-photo"></div></div>'}</div>
       <h3>${esc(p.name)}</h3>
       <p class="sub">${esc(t ? t.name : '')}</p>
+      ${authorHtml(p).replace('<a ', '<a data-close ')}
       <p>${esc(p.desc)}</p>
       <dl class="answers">${(t ? fieldsOf(t) : []).map(fl => `<dt>${esc(fl.label)}</dt><dd>${shown(fl, p.values[fl.id])}</dd>`).join('')}</dl>
       <div class="pub-price">${money(p.price)}</div>
@@ -207,6 +217,9 @@
     </div>`;
     m.hidden = false;
   }
+
+  // people who can be a product's author: employees, profile owners, the current user and the current author
+  const authors = current => [...new Set([...window.KitchensStaff.names(), ...window.KitchensProfiles.owners(), (K().getUser() || {}).name, current].filter(Boolean))].sort();
 
   let draftPhotos = [];
   const photosHtml = () => `<div class="p-photos">${draftPhotos.map((src, i) => `<div class="ph"><img src="${src}" alt=""><button type="button" class="x" data-pc="rm-photo" data-i="${i}" title="Remove">×</button></div>`).join('')}
@@ -221,6 +234,7 @@
       <h3>${p ? 'Edit product' : 'Add product'}</h3>
       <div class="two"><label>Name<input name="name" required value="${p ? esc(p.name) : ''}"></label>
         <label>Price, ₽ <small class="sub">(empty = on request)</small><input name="price" type="number" min="0" step="any" value="${p ? esc(p.price) : ''}"></label></div>
+      <label>Author <small class="sub">(shown on the catalogue with a link to the profile)</small><select name="author"><option value="">— none —</option>${authors(p ? p.author : '').map(n => `<option ${n === (p ? p.author : (K().getUser() || {}).name) ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <label>Type<select name="typeId" id="pcTypeSel" required>${db.types.map(t => `<option value="${t.id}" ${type && t.id === type.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
       <label>Description<textarea name="desc" rows="2">${p ? esc(p.desc) : ''}</textarea></label>
       <fieldset class="loc-pick spec"><legend>Specification <small>(fields of the “${type ? esc(formOf(type) ? formOf(type).name : 'saved') : ''}” form)</small></legend>
@@ -279,6 +293,7 @@
 
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
+    if (e.target.closest('a[href^="#"]')) return; // links (e.g. the author's profile) are not card clicks
     const el = e.target.closest('[data-pc]');
     if (!el || !db) return;
     const d = el.dataset, p = db.products.find(x => x.id === d.id), t = db.types.find(x => x.id === d.id);
@@ -341,7 +356,7 @@
     if (f.id === 'pcProductForm') {
       e.preventDefault();
       const id = f.dataset.id, typeId = f.elements.typeId.value, price = f.elements.price.value;
-      const rec = { name: f.elements.name.value.trim(), typeId, price: price === '' ? '' : +price, desc: f.elements.desc.value.trim(), published: f.elements.published.checked, photos: draftPhotos, values: readValues(f) };
+      const rec = { name: f.elements.name.value.trim(), author: f.elements.author.value, typeId, price: price === '' ? '' : +price, desc: f.elements.desc.value.trim(), published: f.elements.published.checked, photos: draftPhotos, values: readValues(f) };
       if (id) Object.assign(db.products.find(x => x.id === id), rec); else db.products.push({ id: uid(), at: Date.now(), ...rec });
       persist(); document.getElementById('pcModal').hidden = true; redraw();
     }

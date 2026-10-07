@@ -61,8 +61,7 @@
           <div class="card"><h3>${i + 1}. ${t}</h3><p class="sub">Placeholder text describing the ${t.toLowerCase()} stage of your project.</p></div>`).join('')}
       </div>`,
     catalogue: () => window.KitchensPages.PublicCatalogue(), // js/catalogue.js: published products
-    about: () => `<h1>About Us</h1><p class="sub">Small family workshop producing kitchens and cabinet furniture.</p>
-      <div class="card"><p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.</p></div>`,
+    about: () => window.KitchensPages.PublicAbout(), // js/profiles.js: cards of the team profiles
     blog: () => `<h1>Blog</h1><p class="sub">News and tips.</p>
       <div class="grid g3">${[1, 2, 3].map(i => `<div class="card"><h3>Post title ${i}</h3><p class="sub">Short announcement placeholder.</p></div>`).join('')}</div>`,
     contacts: () => `<h1>Contacts</h1><div class="card"><p>Email: info@example.com<br>Phone: +7 000 000-00-00</p></div>`
@@ -98,7 +97,7 @@
     // 'Staff' lives in js/staff.js
     // 'Warehouse' lives in js/warehouse.js
     // 'Product Catalogue' (manager) lives in js/catalogue.js
-    'About Us': () => GUEST.about(),
+    // 'About Us' (profile editor) lives in js/profiles.js
     'Blog': () => GUEST.blog(),
     // 'Price offers' lives in js/offers.js
     // 'Costs' lives in js/costs.js
@@ -123,7 +122,10 @@
 
     const isShare = route.startsWith('share/'), isCase = route.startsWith('case/');
     try {
-      if (route.startsWith('invite/')) { // invitation link for a new employee (#invite/<token>), works without login
+      if (route.startsWith('profile/')) { // public profile page (#profile/<name>), open to everyone
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = window.KitchensPages.Profile(route.slice(8));
+      } else if (route.startsWith('invite/')) { // invitation link for a new employee (#invite/<token>), works without login
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = window.KitchensPages.Invite(route.slice(7));
       } else if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
