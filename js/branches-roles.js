@@ -39,6 +39,14 @@
   const persist = () => { save('branches', branches); save('roles', roles); };
   const redraw = () => window.Kitchens.render();
 
+  /* roles API shared with other pages (the Forms editor assigns forms to roles and edits roles) */
+  window.KitchensRoles = {
+    list: () => { init(); return roles.map(r => ({ id: r.id, name: r.name, locked: !!r.locked })); },
+    add: name => { init(); roles.push({ id: uid(), name, users: 0, perms: level(modules(), 0) }); persist(); },
+    rename: (id, name) => { init(); const r = roles.find(x => x.id === id); if (r) { r.name = name; persist(); } },
+    remove: id => { init(); const r = roles.find(x => x.id === id); if (r && !r.locked) { roles = roles.filter(x => x.id !== id); persist(); } }
+  };
+
   /* ---------- Page ---------- */
   window.KitchensPages['Branches and Roles'] = () => {
     init();

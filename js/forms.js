@@ -54,13 +54,41 @@
   const count = id => subs.filter(s => s.formId === id).length;
   const fmtDate = t => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
 
+  /* ---------- Roles: forms can be assigned to roles (none = everyone); roles are shared with Branches and Roles ---------- */
+  let roleFilter = ''; // list filter: show forms available to this role id ('' = all forms)
+  const roleList = () => window.KitchensRoles.list();
+  const rolesOf = x => { const ids = roleList().map(r => r.id); return (x.roles || []).filter(id => ids.includes(id)); }; // drop deleted roles
+  const roleNames = x => { const m = Object.fromEntries(roleList().map(r => [r.id, r.name])); return rolesOf(x).map(id => m[id]); };
+  const visible = x => !roleFilter || !rolesOf(x).length || rolesOf(x).includes(roleFilter);
+
+  function rolesDialog() {
+    let m = document.getElementById('rolesModal');
+    if (!m) { m = document.createElement('div'); m.className = 'modal'; m.id = 'rolesModal'; document.body.appendChild(m); }
+    m.innerHTML = `<div class="modal-card wide" role="dialog" aria-modal="true" aria-label="Edit roles">
+      <button type="button" class="close" data-close>×</button>
+      <h3>Edit roles</h3>
+      <p class="sub">Roles are shared with the Branches and Roles tab. Changes are saved at once.</p>
+      <ul class="clean role-edit">
+        ${roleList().map(r => `<li><input data-rn="${r.id}" value="${esc(r.name)}" aria-label="Role name">
+          ${r.locked ? '<span class="pill">🔒 always full access</span>' : `<button class="btn small danger" data-fm="role-del" data-id="${r.id}">Delete</button>`}</li>`).join('')}
+      </ul>
+      <form id="roleAdd" class="stage-add"><input name="name" placeholder="New role name" required><button class="btn primary">+ Add role</button></form>
+      <button type="button" class="btn wide" data-close>Done</button>
+    </div>`;
+    m.hidden = false;
+  }
+
   /* ---------- Views ---------- */
   function listView() {
+    const shown = forms.filter(visible);
     return `
     <h1>Forms</h1>
     <p class="sub">Create forms for your team, fill them in and review what was submitted.</p>
-    <div class="section-head"><h2>Your forms <span class="count">${forms.length}</span></h2>
-      <button class="btn primary" data-fm="new">+ New form</button></div>
+    <div class="section-head"><h2>Your forms <span class="count">${shown.length}</span></h2>
+      <span class="seg">
+        <label class="inline-sel">Available to
+          <select data-fm-filter><option value="">All roles</option>${roleList().map(r => `<option value="${r.id}" ${r.id === roleFilter ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></label>
+        <button class="btn primary" data-fm="new">+ New form</button></span></div>
     <div class="grid g3">
       ${me() ? (() => {
         const x = window.KitchensRequest.getForm(me().name), custom = window.KitchensRequest.isCustom(me().name);
@@ -75,11 +103,12 @@
           </div>
         </div>`;
       })() : ''}
-      ${forms.map(x => `
+      ${shown.map(x => `
         <div class="card form-card">
           <h3>${esc(x.name)}</h3>
           <p class="sub">${esc(x.desc) || '&nbsp;'}</p>
           <div class="meta"><span class="pill">${x.fields.length} fields</span> <span class="pill ${count(x.id) ? 'ok' : ''}">${count(x.id)} submissions</span></div>
+          <div class="meta">${roleNames(x).map(n => `<span class="pill role">${esc(n)}</span>`).join('') || '<span class="pill">Everyone</span>'}</div>
           <div class="actions">
             <button class="btn small primary" data-fm="fill" data-id="${x.id}">Fill in</button>
             <button class="btn small" data-fm="subs" data-id="${x.id}">Submissions</button>
@@ -136,6 +165,13 @@
       <div class="card">
         <label class="stack">Form name<input data-d="name" value="${esc(draft.name)}" placeholder="e.g. Measurement sheet"></label>
         <label class="stack">Description<input data-d="desc" value="${esc(draft.desc)}"></label>
+        ${draft.id === REQ ? '' : `
+        <div class="roles-box">
+          <h3>Available to roles</h3>
+          <div class="role-checks">${roleList().map(r => `<label class="inline"><input type="checkbox" data-role="${r.id}" ${rolesOf(draft).includes(r.id) ? 'checked' : ''}> ${esc(r.name)}</label>`).join('')}</div>
+          <p class="hint">Nothing selected = available to everyone.</p>
+          <button type="button" class="btn small" data-fm="roles">⚙ Edit roles</button>
+        </div>`}
         <h3>Fields</h3>
         ${draft.fields.map((fl, i) => `
           <div class="fld">
@@ -172,7 +208,18 @@
     const id = el.dataset.id, i = +el.dataset.i;
     switch (el.dataset.fm) {
       case 'list': draft = null; go('list'); break;
-      case 'new': draft = { id: uid(), name: '', desc: '', fields: [f('')] }; go('build'); break;
+      case 'new': draft = { id: uid(), name: '', desc: '', roles: [], fields: [f('')] }; go('build'); break;
+      case 'roles': rolesDialog(); break;
+      case 'role-del': {
+        const r = roleList().find(x => x.id === id);
+        if (confirm(`Delete role "${r.name}"? A form assigned only to this role becomes available to everyone.`)) {
+          window.KitchensRoles.remove(id);
+          if (draft) draft.roles = rolesOf(draft);
+          if (roleFilter === id) roleFilter = '';
+          rolesDialog(); redraw();
+        }
+        break;
+      }
       case 'edit': draft = JSON.parse(JSON.stringify(forms.find(v => v.id === id))); go('build'); break;
       case 'edit-req': draft = requestDraft(); go('build', REQ); break;
       case 'reset-req':
@@ -217,10 +264,27 @@
     else if (t.dataset.k) draft.fields[+t.dataset.i][t.dataset.k] = t.type === 'checkbox' ? t.checked : t.value;
   });
   document.addEventListener('change', e => {
-    if (draft && e.target.dataset.k === 'type') redraw();
+    const t = e.target;
+    if (draft && t.dataset.k === 'type') redraw();
+    if (draft && t.dataset.role) { // role checkbox in the editor
+      const set = new Set(draft.roles || []);
+      t.checked ? set.add(t.dataset.role) : set.delete(t.dataset.role);
+      draft.roles = [...set];
+    }
+    if (t.dataset.rn !== undefined) { // rename a role in the Edit roles dialog
+      const name = t.value.trim();
+      if (name) { window.KitchensRoles.rename(t.dataset.rn, name); redraw(); } else rolesDialog();
+    }
+    if (t.hasAttribute && t.hasAttribute('data-fm-filter')) { roleFilter = t.value; redraw(); }
   });
 
   document.addEventListener('submit', e => {
+    if (e.target.id === 'roleAdd') {
+      e.preventDefault();
+      const name = e.target.elements.name.value.trim();
+      if (name) { window.KitchensRoles.add(name); rolesDialog(); redraw(); }
+      return;
+    }
     if (e.target.id !== 'fillForm') return;
     e.preventDefault();
     const x = forms.find(v => v.id === e.target.dataset.id);
