@@ -43,7 +43,7 @@
   }
   // notify every employee whose role has at least `min` on the permission row (e.g. 'Warehouse', 1)
   function pushAccess(permission, min, n) {
-    const names = new Set([...window.KitchensStaff.names()]);
+    const names = new Set([...window.KitchensStaff.names(), window.KitchensRoles.ownerName()].filter(Boolean)); // employees and the owner
     names.forEach(nm => { if (window.KitchensRoles.level({ name: nm }, permission) >= min) push(nm, n); });
   }
   const mutate = fn => { const items = load(keyOf(me())); fn(items); store(keyOf(me()), items); renderBell(); };

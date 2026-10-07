@@ -23,11 +23,15 @@
   const me = () => window.Kitchens.getUser();
   const keyOf = (name, what) => 'request:' + encodeURIComponent(name) + ':' + what;
 
+  // people a request can be sent to: employees (people with a role in Staff) and the owner. Customers are not listed.
+  const roleText = name => {
+    if (window.KitchensRoles.isOwner({ name })) return 'Owner';
+    const r = window.KitchensRoles.list().find(x => x.id === window.KitchensRoles.roleIdOf({ name }));
+    return r ? r.name : 'Employee';
+  };
   const users = () => {
-    const known = load('users', []);
-    if (me() && !known.some(u => u.name === me().name)) known.push({ name: me().name }); // e.g. session started before the registry existed
-    const extra = known.filter(u => !SEED_USERS.some(s => s.name === u.name));
-    return [...SEED_USERS, ...extra.map(u => ({ name: u.name, role: 'Member' }))];
+    const names = new Set([...SEED_USERS.map(s => s.name), ...window.KitchensStaff.names(), ...load('users', []).map(u => u.name), window.KitchensRoles.ownerName()].filter(Boolean));
+    return [...names].filter(n => window.KitchensRoles.isEmployee({ name: n })).sort((a, b) => a.localeCompare(b)).map(n => ({ name: n, role: roleText(n) }));
   };
   const isCustom = name => !!load(keyOf(name, 'form'), null);
   const formOf = name => load(keyOf(name, 'form'), null) || FF().template(TEMPLATE);
@@ -130,7 +134,7 @@
     <h1>Request</h1>
     <p class="sub">Send a request for a new kitchen to one of our people. No account needed.</p>
     ${sendSection()}
-    ${me() ? profileSection() : ''}`;
+    ${me() && window.KitchensRoles.isEmployee(me()) ? profileSection() : ''}`;
 
   /* ---------- Events ---------- */
   document.addEventListener('click', e => {

@@ -41,7 +41,8 @@
     url: name => '#profile/' + slugOf(name),
     get: name => { init(); return db[slugOf(name)] || null; },
     owners: () => { init(); return Object.values(db).map(p => p.owner); },
-    list: () => { init(); return Object.entries(db).filter(([, p]) => p.published).map(([slug, p]) => ({ slug, ...p })); }
+    // published profiles of people who are currently employees (or the owner); a person who left the team disappears from About Us
+    list: () => { init(); return Object.entries(db).filter(([, p]) => p.published && window.KitchensRoles.isEmployee({ name: p.owner })).map(([slug, p]) => ({ slug, ...p })); }
   };
 
   // tell the shared block tools where profile blocks live

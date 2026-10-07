@@ -89,11 +89,24 @@
   let user = store.get('user');
 
   /* ---------- Rendering ---------- */
-  function currentRoute() { return decodeURIComponent(location.hash.slice(1)) || (user ? 'tab/dashboard' : 'home'); }
+  const RR = () => window.KitchensRoles;
+  // "Owner", "Employee · Designer" or "User" (a customer without employee rights)
+  function roleLabel() {
+    if (RR().isOwner(user)) return 'Owner';
+    const rid = RR().roleIdOf(user);
+    if (!rid) return 'User';
+    const r = RR().list().find(x => x.id === rid);
+    return 'Employee' + (r ? ' · ' + r.name : '');
+  }
+  // where a logged-in person lands: employees on the dashboard, customers on the request page
+  const homeRoute = () => (user && RR().isEmployee(user) ? 'tab/dashboard' : user ? 'request' : 'home');
+  const noAccess = what => `<h1>No access</h1><div class="placeholder">${what} is not available for your account (${roleLabel()}).<br><small>Employees get access from their role. The owner can change roles in Branches and Roles.</small></div>`;
+  function currentRoute() { return decodeURIComponent(location.hash.slice(1)) || homeRoute(); }
 
   function render() {
     document.body.classList.toggle('is-auth', !!user);
-    if (user) { $('#userName').textContent = user.name; $('#userAvatar').textContent = user.name[0].toUpperCase(); }
+    if (user) { $('#userName').textContent = user.name; $('#userAvatar').textContent = user.name[0].toUpperCase(); $('#userRole').textContent = roleLabel(); }
+    renderTabs(); // the tabs a person sees depend on their role
 
     const route = currentRoute();
     const view = $('#view');
@@ -116,6 +129,9 @@
       } else if (user && route === 'notifications') { // all notifications of the logged-in user
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = window.KitchensPages.Notifications();
+      } else if (isCase && user && !RR().canTab(user, 'Flow')) { // internal case pages need access to Flow
+        $$('#tabsRow button').forEach(b => b.classList.remove('active'));
+        view.innerHTML = noAccess('This request page');
       } else if (isShare || (isCase && user)) { // case page: staff (#case/<id>) or the client's link (#share/<id>)
         $$('#tabsRow button').forEach(b => b.classList.toggle('active', isCase && b.dataset.tab === 'Flow'));
         view.innerHTML = window.KitchensPages.Case(route.slice(isShare ? 6 : 5), isShare);
@@ -123,7 +139,8 @@
         const tab = TABS.find(t => slug(t) === route.slice(4)) || TABS[0];
         $$('#tabsRow button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
         const ext = window.KitchensPages || {};
-        view.innerHTML = (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
+        view.innerHTML = !RR().canTab(user, tab) ? noAccess('“' + tab + '”')
+          : (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
       } else {
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
         view.innerHTML = route === 'request' ? window.KitchensPages.Request()
@@ -138,19 +155,31 @@
   }
 
   function renderTabs() {
-    $('#tabsRow').innerHTML = TABS.map(t => `<button role="tab" data-tab="${t}">${t}</button>`).join('');
+    const shown = user ? TABS.filter(t => RR().canTab(user, t)) : [];
+    $('#tabsRow').innerHTML = shown.map(t => `<button role="tab" data-tab="${t}">${t}</button>`).join('');
+    const cur = decodeURIComponent(location.hash.slice(1));
+    $$('#tabsRow button').forEach(b => b.classList.toggle('active', cur === 'tab/' + slug(b.dataset.tab) || (cur.startsWith('case/') && b.dataset.tab === 'Flow')));
   }
 
   // the bell and the message badge are drawn by js/notify.js
   function renderNotifs() { if (window.KitchensNotify) window.KitchensNotify.renderBell(); }
 
   /* ---------- Auth ---------- */
-  function login(name, roleId) {
-    user = roleId ? { name, roleId } : { name };
+  // Accounts of registered people who are not employees live in the "users" registry: { name, email, salt, hash }.
+  // Employees have their credentials in the Staff record (created when they accept an invitation).
+  const norm = s => String(s || '').trim().toLowerCase();
+  const registry = () => store.get('users') || [];
+
+  function login(name) {
+    user = { name };
     store.set('user', user);
-    const known = store.get('users') || []; // registry of registered users (Request page lists them)
-    if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
-    location.hash = 'tab/dashboard';
+    // employees live in Staff; everybody else is kept in the registry of registered users
+    if (!RR().roleIdOf(user)) {
+      const known = registry();
+      if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
+      RR().setOwnerIfNone(name); // the first person who is not an employee becomes the owner
+    }
+    location.hash = homeRoute();
     closeModals(); render();
     if (window.KitchensNotify) { window.KitchensNotify.welcome(name); window.KitchensNotify.checkReminders(); renderNotifs(); } // first-visit note, task reminders
   }
@@ -179,13 +208,32 @@
   });
 
   $('#logoutBtn').addEventListener('click', logout);
-  $('#loginForm').addEventListener('submit', e => {
+  $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault();
-    login(new FormData(e.target).get('email').split('@')[0]);
+    const fd = new FormData(e.target), email = String(fd.get('email')).trim(), pw = String(fd.get('password')), err = $('#loginErr');
+    err.textContent = '';
+    const emp = await window.KitchensStaff.authenticate(email, pw); // employees first
+    if (emp.kind === 'employee') return login(emp.name);
+    if (emp.kind === 'invited') { err.textContent = 'Your invitation has not been accepted yet. Open the link from the invitation email first.'; return; }
+    if (emp.kind === 'badpw') { err.textContent = 'Wrong email or password.'; return; }
+    const acc = registry().find(u => u.hash && norm(u.email) === norm(email)); // then registered users
+    if (!acc || (await window.KitchensStaff.hash(pw, acc.salt)) !== acc.hash) { err.textContent = 'Wrong email or password. No account yet? Click Register.'; return; }
+    login(acc.name);
   });
-  $('#regForm').addEventListener('submit', e => {
+  $('#regForm').addEventListener('submit', async e => {
     e.preventDefault();
-    login(new FormData(e.target).get('name'));
+    const fd = new FormData(e.target), name = String(fd.get('name')).trim(), email = String(fd.get('email')).trim(), pw = String(fd.get('password')), err = $('#regErr');
+    err.textContent = '';
+    const S = window.KitchensStaff, reg = registry();
+    if (S.emailTaken(email)) { err.textContent = 'This email belongs to a team member. Please use Login (or the link in your invitation).'; return; }
+    if (S.nameTaken(name) && !(RR().isOwner({ name }) && !reg.some(u => u.name === name && u.hash))) { err.textContent = 'This name is already used by a team member. Please choose another.'; return; }
+    if (reg.some(u => u.hash && norm(u.email) === norm(email))) { err.textContent = 'An account with this email already exists. Please log in.'; return; }
+    if (reg.some(u => u.hash && norm(u.name) === norm(name))) { err.textContent = 'This name is already used. Please choose another.'; return; }
+    const salt = window.KitchensForms.uid() + window.KitchensForms.uid(), entry = { name, email, salt, hash: await S.hash(pw, salt) };
+    const i = reg.findIndex(u => u.name === name && !u.hash); // a name from an older session without credentials is claimed by this registration
+    if (i >= 0) reg[i] = entry; else reg.push(entry);
+    store.set('users', reg);
+    login(name);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
@@ -196,7 +244,8 @@
     flowStages: () => stages.filter(s => !isArchiveStage(s)).map(s => ({ ...s })), // stages shown on the Flow board
     isArchive, archiveStageId: () => stages.find(isArchiveStage).id
   };
-  renderTabs();
+  // a session from before the owner was recorded: the logged-in person (if not an employee) is the owner
+  if (user && !RR().roleIdOf(user)) RR().setOwnerIfNone(user.name);
   render();
   // a user who is already logged in when the page opens: first-visit note and task reminders
   if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }

@@ -27,11 +27,13 @@
 
   // everybody a message can be sent to: registered users, employees and profile owners
   const people = () => {
-    const names = new Set([...window.KitchensRequest.users().map(u => u.name), ...window.KitchensStaff.names(), ...window.KitchensProfiles.owners()]);
+    let registered = []; try { registered = (JSON.parse(localStorage.getItem('users')) || []).map(u => u.name); } catch (e) { /* ignore */ }
+    const names = new Set([...registered, ...window.KitchensStaff.names(), ...window.KitchensProfiles.owners(), window.KitchensRoles.ownerName()]);
     names.delete(me());
     return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b));
   };
   const info = name => { // "Employee · Designer" for staff, "User" for everyone else
+    if (window.KitchensRoles.isOwner({ name })) return 'Owner';
     const rid = window.KitchensStaff.roleIdOf(name);
     if (!rid) return 'User';
     const r = window.KitchensRoles.list().find(x => x.id === rid);

@@ -43,7 +43,7 @@
     <!-- User box (Registered) -->
     <div class="user-box auth-only">
       <span class="avatar" id="userAvatar">U</span>
-      <span class="user-name" id="userName">User</span>
+      <span class="user-name" id="userName">User</span><span class="user-role" id="userRole"></span>
       <button class="btn ghost small" id="logoutBtn">Logout</button>
     </div>
   </div>
@@ -63,8 +63,9 @@
     <h3>Login</h3>
     <label>Email<input type="email" name="email" required placeholder="you@company.com"></label>
     <label>Password<input type="password" name="password" required></label>
+    <p class="hint err" id="loginErr"></p>
     <button class="btn primary wide">Login</button>
-    <p class="hint">Prototype: any email/password works.</p>
+    <p class="hint">Team members: log in with the email of your invitation and the password you chose. Prototype: other accounts accept any password.</p>
   </form>
 </div>
 <div class="modal" id="regModal" hidden>
@@ -74,6 +75,7 @@
     <label>Name<input name="name" required></label>
     <label>Email<input type="email" name="email" required></label>
     <label>Password<input type="password" name="password" required minlength="6"></label>
+    <p class="hint err" id="regErr"></p>
     <button class="btn primary wide">Create account</button>
   </form>
 </div>

@@ -62,16 +62,28 @@
     add: name => { init(); roles.push({ id: uid(), name, users: 0, perms: level(modules(), 0) }); persist(); },
     rename: (id, name) => { init(); const r = roles.find(x => x.id === id); if (r) { r.name = name; persist(); } },
     remove: id => { init(); const r = roles.find(x => x.id === id); if (r && !r.locked) { roles = roles.filter(x => x.id !== id); persist(); } },
-    // access level (0 none, 1 view, 2 edit) of a user for a section / permission row.
-    // A user with no staff record (e.g. the demo login) is treated as the owner so the prototype stays usable.
+    // ---- who is who ----
+    // The OWNER is the first person who registers or logs in who is not an employee (stored once, as "owner"): full rights.
+    // An EMPLOYEE is somebody with an active record in Staff (created by accepting an invitation): the rights of their role.
+    // Everybody else is a plain USER (a customer): no access to the internal tabs.
+    ownerName: () => { try { return JSON.parse(localStorage.getItem('owner')) || ''; } catch (e) { return ''; } },
+    setOwnerIfNone: name => { try { if (!JSON.parse(localStorage.getItem('owner'))) localStorage.setItem('owner', JSON.stringify(name)); } catch (e) { localStorage.setItem('owner', JSON.stringify(name)); } },
+    isOwner: user => { const o = window.KitchensRoles.ownerName(); return !!user && !!o && user.name === o; },
+    roleIdOf: user => (user && window.KitchensStaff && window.KitchensStaff.roleIdOf(user.name)) || '',
+    isEmployee: user => window.KitchensRoles.isOwner(user) || !!window.KitchensRoles.roleIdOf(user),
+    // access level (0 none, 1 view, 2 edit) of a user for a section / permission row. The role is read from the
+    // current Staff record every time, so a role change or removal takes effect at once.
     level: (user, key) => {
       init();
       if (!user) return 0;
-      const roleId = user.roleId || (window.KitchensStaff && window.KitchensStaff.roleIdOf(user.name));
-      if (!roleId) return 2;
+      if (window.KitchensRoles.isOwner(user)) return 2;
+      const roleId = window.KitchensRoles.roleIdOf(user);
+      if (!roleId) return 0;
       const r = roles.find(x => x.id === roleId);
       return !r ? 0 : r.locked ? 2 : (r.perms[key] || 0);
     },
+    // may this user open a tab? (About Us: any employee, to edit their own profile)
+    canTab: (user, tab) => tab === 'About Us' ? window.KitchensRoles.isEmployee(user) : window.KitchensRoles.level(user, tab) >= 1,
     sitKey: COSTS_SIT
   };
 
@@ -184,8 +196,9 @@
 
   document.addEventListener('change', e => {
     const s = e.target.closest('select.perm');
-    if (!s) return;
+    if (!s || !s.dataset.role) return; // (the Staff tab uses the same style class for its role / branch dropdowns)
     const r = roles.find(x => x.id === s.dataset.role);
+    if (!r) return;
     r.perms[s.dataset.tab] = +s.value;
     s.className = 'perm lv' + s.value;
     persist();

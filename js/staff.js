@@ -24,7 +24,33 @@
   const init = () => { if (!staff) staff = load('staff', null) || DEFAULT(); };
   const persist = () => save('staff', staff);
 
+  // Password check for employees. The password is kept only as a salted SHA-256 hash.
+  // NOTE: this is client-side and stored in the browser, so it is a prototype of real authentication, not security.
+  async function hashPw(password, salt) {
+    const text = salt + '|' + password;
+    if (window.crypto && crypto.subtle) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    let h = 5381; for (const c of text) h = ((h << 5) + h + c.charCodeAt(0)) | 0; // fallback for browsers without crypto.subtle
+    return 'x' + (h >>> 0).toString(16);
+  }
+  const norm = s => String(s || '').trim().toLowerCase();
+
   window.KitchensStaff = {
+    hash: hashPw,
+    // Login of an employee by email + password: { kind: 'employee', name } | 'invited' (not activated yet) | 'badpw' | 'none' (not staff)
+    authenticate: async (email, password) => {
+      init();
+      const e = staff.find(x => norm(x.email) === norm(email));
+      if (!e) return { kind: 'none' };
+      if (e.status !== 'active') return { kind: 'invited' };
+      if (e.pw && (await hashPw(password, e.pw.salt)) !== e.pw.hash) return { kind: 'badpw' };
+      return { kind: 'employee', name: e.name }; // demo employees created with the app have no password yet and can log in freely
+    },
+    emailTaken: email => { init(); return staff.some(x => norm(x.email) === norm(email)); },
+    // a name that belongs to an employee (active or invited) or to the owner: nobody else may use it
+    nameTaken: name => { init(); return staff.some(x => norm(x.name) === norm(name)) || norm(window.KitchensRoles.ownerName()) === norm(name); },
     // names of active employees (for assignee pickers)
     names: () => { init(); return staff.filter(x => x.status === 'active').map(x => x.name); },
     roleIdOf: name => { init(); const e = staff.find(x => x.status === 'active' && x.name.toLowerCase() === String(name).toLowerCase()); return e ? e.roleId : ''; },
@@ -116,11 +142,12 @@
     if (e.status === 'active') return `<h1>Invitation already used</h1><div class="placeholder">This invitation has been accepted. Please <button class="link" data-open="loginModal">log in</button>.</div>`;
     return `
     <h1>Welcome to Kitchens</h1>
-    <p class="sub">You have been invited as <b>${esc(roleName(e.roleId))}</b>${e.branchId ? ' · ' + esc(branchName(e.branchId)) : ''}. Choose a password to create your account.</p>
+    <p class="sub">You have been invited as <b>${esc(roleName(e.roleId))}</b>${e.branchId ? ' · ' + esc(branchName(e.branchId)) : ''}. By accepting you join the team as an <b>employee</b> with the rights of this role. Choose a password: next time you log in with your email and this password.</p>
     <form class="card fill" id="inviteForm" data-token="${esc(token)}">
       <label><span>Your name</span><input name="name" required value="${esc(e.name)}"></label>
       <label><span>Email</span><input value="${esc(e.email)}" disabled></label>
       <label><span>Password <b class="req">*</b></span><input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+      <p class="hint" id="inviteErr" style="color:var(--bad)"></p>
       <div class="actions"><button class="btn primary">Accept invitation</button></div>
     </form>`;
   };
@@ -155,7 +182,7 @@
     persist();
   });
 
-  document.addEventListener('submit', ev => {
+  document.addEventListener('submit', async ev => {
     const form = ev.target;
     if (form.id === 'staffForm') {
       ev.preventDefault();
@@ -176,11 +203,17 @@
       ev.preventDefault();
       const e = staff.find(x => x.token === form.dataset.token);
       if (!e || e.status === 'active') return;
-      e.name = form.elements.name.value.trim() || e.name;
-      e.status = 'active'; e.joinedAt = Date.now();
+      const name = form.elements.name.value.trim() || e.name, err = document.getElementById('inviteErr');
+      if (staff.some(x => x.id !== e.id && norm(x.name) === norm(name)) || norm(window.KitchensRoles.ownerName()) === norm(name)) {
+        err.textContent = 'This name is already used by another team member. Please choose a different one.'; return;
+      }
+      // activate: the person becomes an employee with the role (and rights) chosen in the invitation
+      const salt = uid() + uid();
+      e.pw = { salt, hash: await hashPw(form.elements.password.value, salt) };
+      e.name = name; e.status = 'active'; e.joinedAt = Date.now();
       persist();
-      window.KitchensNotify.pushAccess('Staff', 2, { type: 'staff', title: 'Invitation accepted', text: `${e.name} joined the team`, link: '#tab/staff' });
-      K().login(e.name, e.roleId); // password is not stored: prototype has no real authentication
+      window.KitchensNotify.pushAccess('Staff', 2, { type: 'staff', title: 'Invitation accepted', text: `${e.name} joined the team as ${roleName(e.roleId)}`, link: '#tab/staff' });
+      K().login(e.name);
     }
   });
 })();
