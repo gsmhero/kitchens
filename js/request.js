@@ -18,15 +18,16 @@
   const me = () => window.Kitchens.getUser();
   const keyOf = (name, what) => 'request:' + encodeURIComponent(name) + ':' + what;
 
-  // people a request can be sent to: employees (people with a role in Staff) and the owner. Customers are not listed.
+  // people a request can be sent to: the owner(s) only (employees and customers are not listed).
   const roleText = name => {
     if (window.KitchensRoles.isOwner({ name })) return 'Owner';
     const r = window.KitchensRoles.list().find(x => x.id === window.KitchensRoles.roleIdOf({ name }));
     return r ? r.name : 'Employee';
   };
   const users = () => {
-    const names = new Set([...window.KitchensStaff.names(), window.KitchensRoles.ownerName()].filter(Boolean));
-    return [...names].filter(n => window.KitchensRoles.isEmployee({ name: n })).sort((a, b) => a.localeCompare(b)).map(n => ({ name: n, role: roleText(n) }));
+    // only the owners can be chosen on the Request page; employees work on the requests in Flow
+    const names = new Set([window.KitchensRoles.ownerName()].filter(Boolean));
+    return [...names].sort((a, b) => a.localeCompare(b)).map(n => ({ name: n, role: roleText(n) }));
   };
   const isCustom = name => !!load(keyOf(name, 'form'), null);
   const formOf = name => load(keyOf(name, 'form'), null) || FF().template(TEMPLATE);
