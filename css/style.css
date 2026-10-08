@@ -648,3 +648,15 @@ h4.mini{margin:14px 0 6px;font-size:14px}
 .ms-pimg .x,.ms-pfile .x{background:#fff;border-radius:50%;width:20px;height:20px;font-size:13px}
 .ms-pimg .x{position:absolute;top:2px;right:2px}
 @media(max-width:800px){.ms-layout{grid-template-columns:1fr;height:auto}.ms-side{max-height:260px}.ms-main{min-height:480px}}
+
+/* Roles & access: role list on the left, permissions of the chosen role on the right (works with any number of roles) */
+.roles-ui{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+.role-list{display:flex;flex-direction:column;gap:4px;max-height:520px;overflow-y:auto}
+.role-item{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer}
+.role-item small{color:var(--muted)}
+.role-item.active{border-color:var(--accent,#2f6f4f);background:#e1f2e8;font-weight:600}
+.role-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.role-head h3{margin:0}
+.perm-table{width:100%}
+.perm-table td:last-child{width:170px}
+@media (max-width:760px){.roles-ui{grid-template-columns:1fr}.role-list{flex-direction:row;flex-wrap:wrap;max-height:none}}

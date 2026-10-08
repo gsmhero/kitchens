@@ -12,6 +12,7 @@
   const A = () => window.KitchensApi, S = () => A().state;
   const redraw = () => window.Kitchens.render();
   const fail = e => alert(e.message || e);
+  let selectedRole = null; // role shown in the "Roles & access" editor
 
   window.KitchensBranches = { list: () => S().branches.map(b => ({ id: b.id, name: b.name })) };
 
@@ -79,24 +80,28 @@
     <div class="section-head"><h2>Roles &amp; access <span class="count">${roles.length}</span></h2>
       <button class="btn primary" data-br="add-role">+ Add role</button></div>
     <div class="card">
-      <div class="matrix-wrap"><table class="matrix">
-        <thead><tr><th>Section</th>
-          ${roles.map(r => `<th><div class="role-h">${esc(r.name)}${r.locked ? ' 🔒' : ''}</div>
-            <small>${(n => `${n} ${n === 1 ? 'user' : 'users'}`)(count('role_id', r.id))}</small>
-            <div class="actions">
-              ${r.locked ? '' : `<button class="link" data-br="edit-role" data-id="${r.id}">rename</button>
-              <button class="link danger-t" data-br="del-role" data-id="${r.id}">delete</button>`}
-            </div></th>`).join('')}
-        </tr></thead>
-        <tbody>
-          ${mods.map(t => `<tr><td>${esc(t)}</td>
-            ${roles.map(r => {
-              const v = r.locked ? 2 : (r.perms[t] || 0);
-              return `<td><select class="perm lv${v}" data-role="${r.id}" data-tab="${esc(t)}" ${r.locked ? 'disabled' : ''}>
-                ${LEVELS.map((l, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>`;
-            }).join('')}</tr>`).join('')}
-        </tbody>
-      </table></div>
+      ${(() => {
+        const cur = roles.find(r => r.id === selectedRole) || roles[0];
+        if (!cur) return '<div class="placeholder">No roles yet.</div>';
+        const users = n => `${n} ${n === 1 ? 'user' : 'users'}`;
+        return `<div class="roles-ui">
+        <div class="role-list">
+          ${roles.map(r => `<button class="role-item ${r.id === cur.id ? 'active' : ''}" data-br="pick-role" data-id="${r.id}">
+            <span>${esc(r.name)}${r.locked ? ' 🔒' : ''}</span><small>${count('role_id', r.id)}</small></button>`).join('')}
+        </div>
+        <div>
+          <div class="role-head"><div><h3>${esc(cur.name)}${cur.locked ? ' 🔒' : ''}</h3><small class="sub">${users(count('role_id', cur.id))}</small></div>
+            <div class="actions">${cur.locked ? '' : `<button class="btn small" data-br="edit-role" data-id="${cur.id}">Rename</button>
+              <button class="btn small danger" data-br="del-role" data-id="${cur.id}">Delete</button>`}</div></div>
+          <table class="perm-table"><thead><tr><th>Section</th><th>Access</th></tr></thead><tbody>
+            ${mods.map(t => {
+              const v = cur.locked ? 2 : (cur.perms[t] || 0);
+              return `<tr><td>${esc(t)}</td><td><select class="perm lv${v}" data-role="${cur.id}" data-tab="${esc(t)}" ${cur.locked ? 'disabled' : ''}>
+                ${LEVELS.map((l, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td></tr>`;
+            }).join('')}
+          </tbody></table>
+        </div></div>`;
+      })()}
       <p class="hint">Changes are saved on the server at once. Owner always has full access.
         <b>Costs</b>: View sees all costs, Edit also manages constant costs. <b>Costs: add situational</b>: Edit lets the role add situation costs (they see only their own entries unless they also have access to Costs).</p>
     </div>`;
@@ -137,6 +142,7 @@
         if (confirm(`Delete branch "${b.name}"?`)) A().call('branch_delete', { id }).then(() => A().load('branches', 'staff')).then(redraw, fail);
         break;
       }
+      case 'pick-role': selectedRole = id; redraw(); break;
       case 'add-role': dialog('Add role', [['name', 'Role name', 1]], {}, saveRole(0)); break;
       case 'edit-role': dialog('Rename role', [['name', 'Role name', 1]], S().roles.find(x => x.id === id), saveRole(id)); break;
       case 'del-role': {
