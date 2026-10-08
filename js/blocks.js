@@ -64,16 +64,22 @@
   const previewVideo = url => !url ? '' : videoOf(url) ? videoHtml(url) : '<p class="hint" style="color:var(--bad)">This does not look like a link (it must start with https://).</p>';
 
   /* ---------- files ---------- */
-  const readImage = (file, max, quality) => new Promise(res => {
+  // ratio (optional, width / height): the picture is cropped around its centre to that shape
+  const readImage = (file, max, quality, ratio) => new Promise(res => {
     const fr = new FileReader();
     fr.onerror = () => res(null);
     fr.onload = () => {
       const img = new Image();
       img.onerror = () => res(null);
       img.onload = () => {
-        const s = Math.min(1, max / Math.max(img.width, img.height)), cv = document.createElement('canvas');
-        cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        if (ratio) { // crop to the wanted shape
+          if (sw / sh > ratio) { sw = Math.round(sh * ratio); sx = Math.round((img.width - sw) / 2); }
+          else { sh = Math.round(sw / ratio); sy = Math.round((img.height - sh) / 2); }
+        }
+        const s = Math.min(1, max / Math.max(sw, sh)), cv = document.createElement('canvas');
+        cv.width = Math.round(sw * s); cv.height = Math.round(sh * s);
+        cv.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         res(cv.toDataURL('image/jpeg', quality));
       };
       img.src = fr.result;
@@ -265,7 +271,7 @@
     const f = find(t.dataset.b);
     if (!f) return;
     const kind = t.dataset.abu, files = [...t.files], b = f.b; t.value = '';
-    if (kind === 'hero') { const img = await readImage(files[0], 1400, 0.75); if (img) { b.hero = img; commit(f.p); redraw(); } }
+    if (kind === 'hero') { const img = await readImage(files[0], 1400, 0.75, 16 / 9); if (img) { b.hero = img; commit(f.p); redraw(); } }
     if (kind === 'gallery') {
       const room = MAX_GALLERY - b.gallery.length;
       const imgs = (await Promise.all(files.slice(0, room).map(x => readImage(x, 900, 0.7)))).filter(Boolean);

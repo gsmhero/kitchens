@@ -457,7 +457,7 @@ tfoot th{border-bottom:0;border-top:2px solid var(--ink);font-weight:700}
 .pf-contacts a.pill{text-decoration:none}
 .pf-block{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px}
 .pf-block h2{margin:0 0 12px}
-.pf-hero{width:100%;max-height:340px;object-fit:cover;border-radius:10px;margin-bottom:16px;display:block}
+.pf-hero{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin-bottom:16px;display:block}
 .rich{line-height:1.7;overflow-wrap:anywhere}
 .rich h2,.rich h3,.rich h4{margin:14px 0 6px}
 .rich p{margin:0 0 10px}
@@ -490,8 +490,8 @@ tfoot th{border-bottom:0;border-top:2px solid var(--ink);font-weight:700}
 .ab-block header .btn.small{padding:3px 9px}
 .ab-sec{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
 .ab-sec h4{margin:0 0 8px}
-.ab-hero{position:relative;margin-bottom:8px;max-width:560px}
-.ab-hero img{width:100%;max-height:220px;object-fit:cover;border-radius:8px;display:block}
+.ab-hero{position:relative;margin-bottom:8px;max-width:480px}
+.ab-hero img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block}
 .ab-hero .x{position:absolute;top:6px;right:6px;background:#fff;border-radius:50%;width:26px;height:26px}
 .ab-doc{display:flex;gap:8px;align-items:center;padding:4px 0}
 .ab-doc .x{margin-left:auto}
