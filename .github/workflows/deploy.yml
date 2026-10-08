@@ -1,0 +1,38 @@
+name: Deploy to server
+
+# Every push to main uploads the site to the server over SSH (password login).
+# Secrets used: SSH_HOST, SSH_PORT, SSH_USER, SSH_PASS, DEPLOY_PATH (Settings -> Secrets and variables -> Actions).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # also lets you run it by hand from the Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+      - name: Upload the site
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT }}
+          USER: ${{ secrets.SSH_USER }}
+          SSHPASS: ${{ secrets.SSH_PASS }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # Only the site itself is uploaded (no --delete: other files in the folder are left alone).
+          # The server's host key is trusted on first contact (accept-new); a changed key is refused.
+          OPTS="-p ${PORT:-22} -o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive"
+          echo "Uploading to $USER@$HOST (port ${PORT:-22})"
+          if sshpass -e rsync -az --info=stats1 -e "ssh $OPTS" index.html css js "$USER@$HOST:${DEST%/}/"; then
+            echo "Uploaded with rsync."
+          else
+            echo "rsync failed (maybe not installed on the server or the path is wrong): trying scp ..."
+            sshpass -e scp -r -P "${PORT:-22}" -o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no index.html css js "$USER@$HOST:${DEST%/}/"
+            echo "Uploaded with scp."
+          fi
