@@ -45,7 +45,7 @@
       return !r ? 0 : r.locked ? 2 : (r.perms[key] || 0);
     },
     // may this user open a tab? (About Us: any employee, to edit their own profile)
-    canTab: (user, tab) => tab === 'About Us' ? KR.isEmployee(user) : KR.level(user, tab) >= 1,
+    canTab: (user, tab) => tab === 'About Us' ? KR.isEmployee(user) : tab === 'Branches and Roles' ? KR.isOwner(user) : KR.level(user, tab) >= 1,
     sitKey: COSTS_SIT
   };
 
