@@ -88,7 +88,7 @@
         <div class="pf-contacts">${p.email ? `<a class="pill" href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a>` : ''}${p.phone ? `<span class="pill">☎ ${esc(p.phone)}</span>` : ''}
           ${me() && p.owner !== me() ? `<a class="btn small" href="#messages/${encodeURIComponent(p.owner)}">💬 Send a message</a>` : ''}</div></div>
     </header>
-    ${p.blocks.filter(b => b.visible).map(b => B().publicHtml(b)).join('')}
+    ${p.blocks.filter(b => b.visible).map(b => B().publicHtml(b, { bannerTag: 'h2' })).join('')}
     ${prods.length ? `<section class="pf-block"><h2>Products by ${esc(p.name)}</h2><div class="grid g4">${prods.map(x => `<a class="card pf-prod" href="#catalogue"><b>${esc(x.name)}</b><div class="sub">${esc(x.typeName)}</div><div class="pub-price">${x.price === '' ? 'Price on request' : K().fmt(+x.price) + ' ₽'}</div></a>`).join('')}</div></section>` : ''}`;
   };
 
@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <div class="section-head"><h2>Blocks <span class="count">${p.blocks.length}</span></h2><button class="btn primary" data-ab="add">+ Add block</button></div>
+    <div class="section-head"><h2>Blocks <span class="count">${p.blocks.length}</span></h2><div class="actions"><button class="btn" data-ab="add-banner">+ Add banner</button><button class="btn primary" data-ab="add">+ Add block</button></div></div>
     ${p.blocks.map((b, i) => blockEditor(p, b, i)).join('') || '<div class="placeholder">No blocks yet. A block can hold text, a hero image, a gallery, documents and a video. Click “Add block”.</div>'}`;
   };
 
@@ -159,6 +159,7 @@
     const d = el.dataset, p = cur(), i = p ? p.blocks.findIndex(b => b.id === d.b) : -1;
     switch (d.ab) {
       case 'add': { const b = block('', ''); b.title = 'New block'; p.blocks.push(b); commit(); redraw(); break; }
+      case 'add-banner': p.blocks.push(B().newBanner()); commit(); redraw(); break;
       case 'toggle': collapsed.has(d.b) ? collapsed.delete(d.b) : collapsed.add(d.b); redraw(); break;
       case 'up': case 'down': { const j = d.ab === 'up' ? i - 1 : i + 1;[p.blocks[i], p.blocks[j]] = [p.blocks[j], p.blocks[i]]; commit(); redraw(); break; }
       case 'vis': p.blocks[i].visible = !p.blocks[i].visible; commit(); redraw(); break;
