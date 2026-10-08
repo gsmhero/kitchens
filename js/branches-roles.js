@@ -93,6 +93,15 @@
           <div class="role-head"><div><h3>${esc(cur.name)}${cur.locked ? ' 🔒' : ''}</h3><small class="sub">${users(count('role_id', cur.id))}</small></div>
             <div class="actions">${cur.locked ? '' : `<button class="btn small" data-br="edit-role" data-id="${cur.id}">Rename</button>
               <button class="btn small danger" data-br="del-role" data-id="${cur.id}">Delete</button>`}</div></div>
+          ${cur.locked ? '' : `<form class="role-info" id="roleInfo" data-id="${cur.id}">
+            <h4>Role details</h4>
+            <div class="two"><label class="stack">Name<input name="name" required maxlength="120" value="${esc(cur.name)}"></label>
+              <label class="stack">Salary per month, ₽ <small class="sub">(used in Costs)</small><input name="salary" type="number" min="0" step="100" value="${cur.salary == null ? '' : esc(cur.salary)}" placeholder="0"></label></div>
+            <label class="stack">Work hours<input name="workHours" maxlength="255" value="${esc(cur.workHours)}" placeholder="e.g. Mon–Fri 9:00–18:00"></label>
+            <label class="stack">Description<textarea name="description" rows="3" maxlength="4000" placeholder="What this role does">${esc(cur.description)}</textarea></label>
+            <label class="stack">Requirements<textarea name="requirements" rows="3" maxlength="4000" placeholder="Skills, experience, tools…">${esc(cur.requirements)}</textarea></label>
+            <div class="actions"><button class="btn primary">Save details</button><span class="hint" id="roleInfoMsg"></span></div>
+          </form>`}
           <table class="perm-table"><thead><tr><th>Section</th><th>Access</th></tr></thead><tbody>
             ${mods.map(t => {
               const v = cur.locked ? 2 : (cur.perms[t] || 0);
@@ -162,5 +171,17 @@
     s.className = 'perm lv' + lv;
     A().call('role_save', { id: r.id, name: r.name, perms: { [s.dataset.tab]: lv } })
       .then(() => { r.perms[s.dataset.tab] = lv; }, err => { alert(err.message); redraw(); });
+  });
+
+  document.addEventListener('submit', async e => {
+    if (e.target.id !== 'roleInfo') return;
+    e.preventDefault();
+    const f = e.target, d = Object.fromEntries(new FormData(f)), msg = document.getElementById('roleInfoMsg');
+    msg.textContent = 'Saving…';
+    try {
+      await A().call('role_save', { id: +f.dataset.id, name: d.name.trim(), salary: +d.salary || 0, workHours: d.workHours, description: d.description, requirements: d.requirements });
+      await A().load('roles'); redraw();
+      const m2 = document.getElementById('roleInfoMsg'); if (m2) m2.textContent = 'Saved ✓';
+    } catch (err) { msg.textContent = '⚠ ' + err.message; }
   });
 })();

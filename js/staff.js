@@ -111,6 +111,10 @@
         host.innerHTML = `
         <h1>Welcome to Kitchens</h1>
         <p class="sub">You have been invited as <b>${esc(i.role_name)}</b>. By accepting you join the team as an <b>employee</b> with the rights of this role. Choose a password: next time you log in with your email and this password.</p>
+        ${i.description || i.work_hours || i.requirements ? `<div class="card">
+          ${i.description ? `<p><b>About the role</b><br>${esc(i.description).replace(/\n/g, '<br>')}</p>` : ''}
+          ${i.work_hours ? `<p><b>Work hours</b><br>${esc(i.work_hours)}</p>` : ''}
+          ${i.requirements ? `<p><b>Requirements</b><br>${esc(i.requirements).replace(/\n/g, '<br>')}</p>` : ''}</div>` : ''}
         <form class="card fill" id="inviteForm" data-token="${esc(token)}">
           <label><span>Your name</span><input name="name" required value="${esc(i.name)}"></label>
           <label><span>Email</span><input value="${esc(i.email)}" disabled></label>

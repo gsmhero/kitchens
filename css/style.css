@@ -691,3 +691,9 @@ h4.mini{margin:14px 0 6px;font-size:14px}
 .bn-ed-img img,.bn-ed-img .no-photo{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--muted);margin-bottom:6px}
 .bn-ed-act{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 @media (max-width:760px){.bn-ed{grid-template-columns:1fr}.bn-ed-act{flex-direction:row}}
+
+/* role details form */
+.role-info{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0 14px;background:var(--card)}
+.role-info h4{margin:0 0 8px}
+.role-info textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;resize:vertical}
+.role-info .actions{display:flex;align-items:center;gap:12px;margin-top:6px}

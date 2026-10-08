@@ -90,6 +90,10 @@ function add_column(string $table, string $col, string $def): void {
 add_column('branches', 'city', "VARCHAR(120) NOT NULL DEFAULT ''");
 add_column('branches', 'phone', "VARCHAR(60) NOT NULL DEFAULT ''");
 add_column('branches', 'manager', "VARCHAR(120) NOT NULL DEFAULT ''");
+add_column('roles', 'salary', "DECIMAL(12,2) NOT NULL DEFAULT 0");
+add_column('roles', 'description', "TEXT NULL");
+add_column('roles', 'work_hours', "VARCHAR(255) NOT NULL DEFAULT ''");
+add_column('roles', 'requirements', "TEXT NULL");
 
 if (!q('SELECT 1 FROM kv_counter')->fetch()) q('INSERT INTO kv_counter (n) VALUES (0)');
 

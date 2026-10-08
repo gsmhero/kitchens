@@ -65,10 +65,14 @@ case 'logout':
 /* ---------- roles and branches (owner only to change, everyone logged in may read the names) ---------- */
 case 'roles': {
     $viewer = me();   // guests get only the role names (the Request page shows them next to people)
-    $roles = q('SELECT id, name, locked FROM roles ORDER BY locked DESC, name')->fetchAll();
+    $roles = q('SELECT id, name, locked, salary, description, work_hours, requirements FROM roles ORDER BY locked DESC, name')->fetchAll();
+    $seeSalary = $viewer && ($viewer['is_owner'] || level($viewer, 'Costs') >= 1 || level($viewer, 'Dashboard') >= 1); // salaries are private
     $perms = [];
     foreach (q('SELECT role_id, perm_key, level FROM role_permissions')->fetchAll() as $p) $perms[(int) $p['role_id']][$p['perm_key']] = (int) $p['level'];
-    foreach ($roles as &$r) { $r['id'] = (int) $r['id']; $r['locked'] = (bool) $r['locked']; $r['perms'] = (object) ($viewer ? ($perms[$r['id']] ?? []) : []); }
+    foreach ($roles as &$r) { $r['id'] = (int) $r['id']; $r['locked'] = (bool) $r['locked']; $r['perms'] = (object) ($viewer ? ($perms[$r['id']] ?? []) : []);
+        $r['salary'] = $seeSalary ? (float) $r['salary'] : null;
+        $r['workHours'] = $viewer ? $r['work_hours'] : ''; unset($r['work_hours']);
+        if (!$viewer) { $r['description'] = ''; $r['requirements'] = ''; } }
     out(['roles' => $roles]);
 }
 case 'role_save': {
@@ -86,6 +90,11 @@ case 'role_save': {
         q('INSERT INTO roles (name) VALUES (?)', [$name]);
         $id = (int) db()->lastInsertId();
     }
+    // details of the role (only the fields that were sent are changed)
+    if (array_key_exists('salary', $b)) q('UPDATE roles SET salary = ? WHERE id = ?', [max(0, min(99999999, round((float) $b['salary'], 2))), $id]);
+    if (array_key_exists('description', $b)) q('UPDATE roles SET description = ? WHERE id = ?', [str($b, 'description', 4000), $id]);
+    if (array_key_exists('workHours', $b)) q('UPDATE roles SET work_hours = ? WHERE id = ?', [str($b, 'workHours', 255), $id]);
+    if (array_key_exists('requirements', $b)) q('UPDATE roles SET requirements = ? WHERE id = ?', [str($b, 'requirements', 4000), $id]);
     if (isset($b['perms']) && is_array($b['perms'])) {
         $ok = perm_keys();
         foreach ($b['perms'] as $k => $lv) {
@@ -183,7 +192,7 @@ case 'invite_cancel': {
 }
 case 'invite_info': {
     $token = (string) ($_GET['t'] ?? '');
-    $r = q('SELECT i.email, i.name, r.name AS role_name FROM invitations i JOIN roles r ON r.id = i.role_id
+    $r = q('SELECT i.email, i.name, r.name AS role_name, r.description, r.work_hours, r.requirements FROM invitations i JOIN roles r ON r.id = i.role_id
             WHERE i.token_hash = ? AND i.used_at IS NULL AND i.expires_at > UTC_TIMESTAMP()', [hash('sha256', $token)])->fetch();
     if (!$r) fail('This invitation link is not valid any more', 404);
     out($r);

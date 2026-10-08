@@ -44,6 +44,18 @@
 
   const monthly = c => c.amount * PERIODS[c.period][1];
 
+  // Salaries come from the roles: each employee costs the "Salary per month" of their role (Branches and Roles).
+  // They are added to the constant costs automatically, so the dashboard and forecasts include them.
+  const salaryRows = () => {
+    const A = window.KitchensApi && window.KitchensApi.state;
+    if (!A) return [];
+    return (A.roles || []).filter(r => !r.locked && +r.salary > 0).map(r => {
+      const n = (A.people || []).filter(p => !p.isOwner && p.roleId === r.id).length;
+      return n ? { id: 'salary:' + r.id, name: 'Salaries: ' + r.name + ' × ' + n, category: 'Salaries', amount: r.salary * n, period: 'month', active: true, note: n + ' employee' + (n > 1 ? 's' : '') + ' × ' + r.salary + ' ₽ (from the role)', auto: true } : null;
+    }).filter(Boolean);
+  };
+  const allConst = () => [...db.constants, ...salaryRows()];
+
   /* ---------- permissions ---------- */
   const lvl = key => window.KitchensRoles.level(me(), key);
   const perms = () => {
@@ -55,7 +67,7 @@
   /* API for the Agents page: employees add and manage their OWN situation costs (needs the situational permission) */
   window.KitchensCosts = {
     // raw numbers for the dashboard (the dashboard decides who may see them)
-    data: () => { init(); return { constants: db.constants.map(c => ({ ...c, perMonth: monthly(c) })), situational: db.situational.map(e => ({ ...e })) }; },
+    data: () => { init(); return { constants: allConst().map(c => ({ ...c, perMonth: monthly(c) })), situational: db.situational.map(e => ({ ...e })) }; },
     categories: SIT_CATS,
     canAdd: () => { init(); return perms().add; },
     mine: () => { init(); const n = (me() || {}).name; return db.situational.filter(e => e.by === n).sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at); },
@@ -121,19 +133,19 @@
   }
 
   function constantView(p) {
-    const active = db.constants.filter(c => c.active), perMonth = active.reduce((a, c) => a + monthly(c), 0);
+    const active = allConst().filter(c => c.active), perMonth = active.reduce((a, c) => a + monthly(c), 0);
     return `
     <p class="sub">Costs that repeat every period. Everything is also shown as a monthly equivalent, so you can see what the business costs to run.</p>
     ${p.manage ? '<div class="section-head"><span></span><button class="btn primary" data-co="add-const">+ Add constant cost</button></div>' : ''}
     <div class="card"><div class="matrix-wrap"><table><thead><tr><th>Cost</th><th>Category</th><th class="num">Amount</th><th>Period</th><th class="num">Per month</th><th>Status</th><th></th></tr></thead><tbody>
-      ${db.constants.map(c => `<tr class="${c.active ? '' : 'off'}">
+      ${allConst().map(c => `<tr class="${c.active ? "" : "off"}">
         <td><b>${esc(c.name)}</b>${c.note ? `<br><small class="sub">${esc(c.note)}</small>` : ''}</td>
         <td><span class="pill">${esc(c.category)}</span></td>
         <td class="num">${money(c.amount)}</td>
         <td>${PERIODS[c.period][0]}</td>
         <td class="num"><b>${money(monthly(c))}</b></td>
-        <td>${p.manage ? `<button class="pill ${c.active ? 'ok' : ''} pill-btn" data-co="toggle" data-id="${c.id}" title="Click to switch">${c.active ? 'Active' : 'Paused'}</button>` : `<span class="pill ${c.active ? 'ok' : ''}">${c.active ? 'Active' : 'Paused'}</span>`}</td>
-        <td class="row-actions">${p.manage ? `<button class="btn small" data-co="edit-const" data-id="${c.id}">Edit</button><button class="link danger-t" data-co="del-const" data-id="${c.id}">delete</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="sub">No constant costs yet.</td></tr>'}
+        <td>${p.manage && !c.auto ? `<button class="pill ${c.active ? 'ok' : ''} pill-btn" data-co="toggle" data-id="${c.id}" title="Click to switch">${c.active ? 'Active' : 'Paused'}</button>` : `<span class="pill ${c.active ? 'ok' : ''}">${c.active ? 'Active' : 'Paused'}</span>`}</td>
+        <td class="row-actions">${c.auto ? `<small class="sub">from roles</small>` : p.manage ? `<button class="btn small" data-co="edit-const" data-id="${c.id}">Edit</button><button class="link danger-t" data-co="del-const" data-id="${c.id}">delete</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="sub">No constant costs yet.</td></tr>'}
     </tbody><tfoot><tr><th colspan="4">Total per month (active)</th><th class="num">${money(perMonth)}</th><th colspan="2">${money(perMonth * 12)} / year</th></tr></tfoot></table></div></div>`;
   }
 
@@ -144,7 +156,7 @@
     if (p.ownOnly) tab = 'situational';
 
     const thisM = todayISO().slice(0, 7);
-    const constM = db.constants.filter(c => c.active).reduce((a, c) => a + monthly(c), 0);
+    const constM = allConst().filter(c => c.active).reduce((a, c) => a + monthly(c), 0);
     const sitM = db.situational.filter(e => monthOf(e.date) === thisM).reduce((a, e) => a + e.amount, 0);
     const sitY = db.situational.filter(e => e.date.slice(0, 4) === thisM.slice(0, 4)).reduce((a, e) => a + e.amount, 0);
     return `
@@ -156,7 +168,7 @@
       <div class="card kpi"><div class="l">Total this month</div><div class="n">${money(constM + sitM)}</div></div>
       <div class="card kpi"><div class="l">Situation this year</div><div class="n">${money(sitY)}</div></div>
     </div>` : ''}
-    ${p.ownOnly ? '' : `<div class="wh-tabs">${[['situational', `Situation costs (${db.situational.length})`], ['constant', `Constant costs (${db.constants.length})`]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-co="tab" data-v="${k}">${l}</button>`).join('')}</div>`}
+    ${p.ownOnly ? '' : `<div class="wh-tabs">${[['situational', `Situation costs (${db.situational.length})`], ['constant', `Constant costs (${allConst().length})`]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-co="tab" data-v="${k}">${l}</button>`).join('')}</div>`}
     ${tab === 'constant' && !p.ownOnly ? constantView(p) : situationalView(p)}`;
   };
 
