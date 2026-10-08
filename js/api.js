@@ -48,6 +48,14 @@
     await Promise.all(names.map(n => loaders[n] && loaders[n]()));
   }
 
+  // team, roles and my own rights can change while the page is open (somebody accepts an invitation, the owner changes a role):
+  // reload them; returns true when something is different
+  async function refreshTeam() {
+    const sig = () => JSON.stringify([state.user, state.levels, state.people, state.roles, state.staff, state.invitations]);
+    const before = sig();
+    await refreshSession(); await load('people', 'roles', 'staff');
+    return sig() !== before;
+  }
   // first page load: who is logged in (session cookie), then the lists
   async function boot() {
     try { state.home = await call('page_get', undefined, { slug: 'home' }); } catch (e) { /* the default Home page is shown */ }
@@ -62,5 +70,5 @@
   async function setSession(s) { applySession(s); await load(); return state.user; }
   async function logout() { try { await window.KitchensSync.flush(); await call('logout', {}); window.KitchensSync.purge(); } catch (e) { /* the session cookie is dropped anyway */ } await refreshSession().catch(() => applySession({ user: null, levels: {} })); }
 
-  window.KitchensApi = { state, call, load, boot, setSession, logout, refreshSession };
+  window.KitchensApi = { state, call, load, boot, setSession, logout, refreshSession, refreshTeam };
 })();

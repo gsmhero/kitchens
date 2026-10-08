@@ -136,6 +136,9 @@
         base[k] = it.v; stale = true;
       });
     } catch (e) { /* try again later */ }
+    try { // the team / roles / my rights: redraw the page (no reload) when they changed
+      if (await window.KitchensApi.refreshTeam() && !busy()) window.Kitchens.render();
+    } catch (e) { /* try again later */ }
     maybeReload();
   }
   const busy = () => {
@@ -149,7 +152,7 @@
   ['input', 'keydown', 'pointerdown', 'change'].forEach(ev => document.addEventListener(ev, () => { lastInput = Date.now(); }, true));
 
   // do not lose a change when the tab is closed
-  document.addEventListener('visibilitychange', () => { if (document.hidden && dirty.size) flush(true); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && dirty.size) flush(true); if (!document.hidden) poll(); });
   window.addEventListener('pagehide', () => { if (dirty.size) flush(true); });
 
   // forget everything cached here (logout): a shared computer must not keep somebody's data
