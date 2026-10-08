@@ -17,19 +17,7 @@
   const day = 86400000;
   const fmtD = t => new Date(t).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const seed = () => {
-    const now = Date.now(), a = (text, author, ago) => ({ id: uid(), text, author, at: now - ago * day });
-    const q = (title, body, tags, author, ago, answers, accepted) => ({ id: uid(), title, body, tags, author, at: now - ago * day, answers, accepted: accepted ? answers[0].id : null });
-    return [
-      q('What is the standard height of a kitchen countertop?', 'We are measuring a client who is about 175 cm tall. Is 85 cm still fine?', ['measure', 'ergonomics'], 'B. Jones', 6,
-        [a('Standard is 85–90 cm. A simple rule: elbow height minus 10–15 cm. For 175 cm that is about 90 cm.', 'A. Smith', 5), a('Always ask who cooks most. Two cooks of different height: take the average or use a separate prep zone.', 'C. Brown', 4)], true),
-      q('How do we calculate MDF sheet usage for a kitchen?', 'Is there a quick way to estimate sheets of 18 mm MDF before the detailed cut list is ready?', ['production', 'materials'], 'C. Brown', 12,
-        [a('Rule of thumb: about 1 sheet per 0.6–0.7 linear metre of base cabinets, plus 15% for waste. Replace it with the real cut list as soon as it exists.', 'A. Smith', 10)], true),
-      q('Which hinges do we use for heavy fridge-column doors?', 'The standard hinges sag on 2.2 m high doors.', ['assembly', 'hardware'], 'D. Davis', 3, [], false),
-      q('How long should a price offer stay valid?', 'Material prices change often. What validity period do we put on offers?', ['offer', 'sales'], 'A. Smith', 20,
-        [a('14 days. Say it clearly in the offer description, and re-issue if the client needs more time.', 'B. Jones', 18)], false)
-    ];
-  };
+  const seed = () => [];
 
   let items;
   const init = () => { if (!items) items = load('knowledge', null) || seed(); };

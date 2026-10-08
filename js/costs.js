@@ -38,16 +38,7 @@
     if (db) return;
     db = load('costs', null);
     if (db) return;
-    const c = (name, category, amount, period) => ({ id: uid(), name, category, amount, period, active: true, note: '' });
-    const s = (date, amount, category, description, by) => ({ id: uid(), date, amount, category, description, requestId: '', branchId: '', by, at: Date.now() });
-    db = {
-      constants: [c('Workshop rent', 'Rent', 120000, 'month'), c('Electricity and heating', 'Utilities', 28000, 'month'), c('Salaries', 'Salaries', 310000, 'month'),
-        c('Design software licences', 'Software', 36000, 'year'), c('Equipment insurance', 'Insurance', 24000, 'quarter')],
-      situational: [s(dayInMonth(0, 3), 14500, 'Materials', 'Edge tape and glue, emergency purchase', 'C. Brown'), s(dayInMonth(0, 8), 3200, 'Transport', 'Fuel for client delivery', 'D. Davis'),
-        s(dayInMonth(1, 19), 9800, 'Repairs', 'Panel saw blade replacement', 'C. Brown'), s(dayInMonth(1, 4), 22000, 'Subcontractor', 'Stone countertop cutting', 'A. Smith'),
-        s(dayInMonth(2, 11), 16500, 'Materials', 'Hardware restock', 'C. Brown'), s(dayInMonth(2, 22), 5400, 'Transport', 'Delivery van fuel', 'D. Davis'),
-        s(dayInMonth(3, 7), 31000, 'Subcontractor', 'Painting of facades', 'A. Smith'), s(dayInMonth(4, 16), 8700, 'Tools', 'Router bits and clamps', 'C. Brown')]
-    };
+    db = { constants: [], situational: [] };
     persist();
   };
 

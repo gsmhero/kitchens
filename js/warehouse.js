@@ -21,30 +21,7 @@
   const UNITS = ['pcs', 'sheet', 'm', 'm²', 'kg', 'l', 'set'];
 
   /* ---------- data ---------- */
-  const seed = () => {
-    const now = Date.now(), cat = name => ({ id: uid(), name });
-    const shelves = names => names.map(name => ({ id: uid(), name }));
-    const categories = [cat('Boards'), cat('Hardware'), cat('Consumables')];
-    const zones = [
-      { id: uid(), name: 'Zone A — Boards', sections: [{ id: uid(), name: 'Rack A1', shelves: shelves(['Shelf 1', 'Shelf 2', 'Shelf 3']) }, { id: uid(), name: 'Rack A2', shelves: shelves(['Shelf 1', 'Shelf 2']) }] },
-      { id: uid(), name: 'Zone B — Hardware', sections: [{ id: uid(), name: 'Cabinet B1', shelves: shelves(['Shelf 1', 'Shelf 2', 'Shelf 3']) }] },
-      { id: uid(), name: 'Zone C — Consumables', sections: [{ id: uid(), name: 'Rack C1', shelves: shelves(['Shelf 1', 'Shelf 2']) }] }
-    ];
-    const sh = (z, s, n) => zones[z].sections[s].shelves[n].id;
-    const item = (sku, name, c, unit, qty, min, cost, shelfId) => ({ id: uid(), sku, name, categoryId: categories[c].id, unit, qty, min, cost, shelfId });
-    const items = [
-      item('MDF-18-W', 'MDF 18 mm, white', 0, 'sheet', 12, 20, 2400, sh(0, 0, 0)),
-      item('MDF-18-O', 'MDF 18 mm, oak veneer', 0, 'sheet', 34, 15, 3100, sh(0, 0, 1)),
-      item('TOP-38', 'Countertop 38 mm, 3 m', 0, 'pcs', 9, 4, 8900, sh(0, 1, 0)),
-      item('HNG-BLUM', 'Hinge Blum 110°, soft-close', 1, 'pcs', 340, 100, 190, sh(1, 0, 0)),
-      item('SLD-45', 'Drawer slides 450 mm', 1, 'set', 62, 40, 540, sh(1, 0, 1)),
-      item('HDL-M2', 'Handle M2, steel', 1, 'pcs', 120, 50, 120, sh(1, 0, 2)),
-      item('EDG-W', 'Edge tape white 22 mm', 2, 'm', 45, 40, 14, sh(2, 0, 0)),
-      item('GLU-PUR', 'PUR hot-melt glue', 2, 'kg', 0, 5, 780, sh(2, 0, 1))
-    ];
-    const moves = items.map((it, i) => ({ id: uid(), itemId: it.id, type: 'receive', qty: it.qty, delta: it.qty, after: it.qty, ref: 'Initial stock', user: 'System', at: now - (20 - i) * 86400000 })).filter(m => m.qty > 0);
-    return { items, moves, zones, categories };
-  };
+  const seed = () => ({ items: [], moves: [], zones: [], categories: [] });
 
   // data saved by the first Warehouse version had plain-text category / location on each item
   function migrate(d) {

@@ -22,31 +22,7 @@
   let db;
   const persist = () => { if (!save('catalogue', db)) alert('Could not save: browser storage is full. Try fewer or smaller photos.'); };
 
-  function seed() {
-    const f = FF().f;
-    const kitchenForm = FF().create({ name: 'Kitchen specification', desc: 'Fields of a complete kitchen set.', fields: [
-      f('Style', 'select', true, 'Modern, Classic, Loft, Scandi, Minimal'), f('Facade material', 'select', false, 'MDF painted, Veneer, Laminate, Solid wood'),
-      f('Countertop material', 'text'), f('Length, m', 'number'), f('Built-in appliances', 'checkbox')] });
-    const cabinetForm = FF().create({ name: 'Cabinet specification', desc: 'Fields of a single cabinet or module.', fields: [
-      f('Width, mm', 'number', true), f('Height, mm', 'number'), f('Depth, mm', 'number'), f('Body material', 'text'), f('Soft-close', 'checkbox')] });
-    const forms = FF().list();
-    const fields = id => forms.find(x => x.id === id).fields;
-    const types = [
-      { id: uid(), name: 'Kitchen set', desc: 'Complete kitchens made to order.', formId: kitchenForm, snapshot: fields(kitchenForm) },
-      { id: uid(), name: 'Cabinet', desc: 'Separate cabinets and modules.', formId: cabinetForm, snapshot: fields(cabinetForm) }
-    ];
-    const val = (type, map) => Object.fromEntries(type.snapshot.filter(fl => map[fl.label] !== undefined).map(fl => [fl.id, map[fl.label]]));
-    const prod = (type, name, price, desc, map, published = true) => ({ id: uid(), typeId: type.id, name, price, desc, published, photos: [], values: val(type, map), at: Date.now() });
-    const [kit, cab] = types;
-    const products = [
-      prod(kit, 'Modern kitchen “Nord”', 245000, 'Handle-less facades, quartz countertop.', { Style: 'Modern', 'Facade material': 'MDF painted', 'Countertop material': 'Quartz', 'Length, m': 3.2, 'Built-in appliances': true }),
-      prod(kit, 'Classic kitchen “Provence”', 310000, 'Solid wood frame facades with patina.', { Style: 'Classic', 'Facade material': 'Solid wood', 'Countertop material': 'Granite', 'Length, m': 4, 'Built-in appliances': false }),
-      prod(cab, 'Base cabinet 600 with drawers', 18500, 'Three drawers on soft-close slides.', { 'Width, mm': 600, 'Height, mm': 720, 'Depth, mm': 560, 'Body material': 'Laminated chipboard 18 mm', 'Soft-close': true }),
-      prod(cab, 'Wall cabinet 800', 9800, 'Two doors, adjustable shelf.', { 'Width, mm': 800, 'Height, mm': 720, 'Depth, mm': 320, 'Body material': 'Laminated chipboard 18 mm', 'Soft-close': true }, false)
-    ];
-    ['B. Jones', 'B. Jones', 'C. Brown', 'C. Brown'].forEach((a, i) => { products[i].author = a; }); // demo authors (their profiles are in About Us)
-    return { types, products };
-  }
+  const seed = () => ({ types: [], products: [] });
   const init = () => { if (!db) { db = load('catalogue', null) || seed(); save('catalogue', db); } };
 
   // products as plain data for other pages (Price offers pick lines from here)

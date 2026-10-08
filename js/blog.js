@@ -25,17 +25,7 @@
   const save = () => { try { localStorage.setItem('blog', JSON.stringify(db)); return true; } catch (e) { return false; } };
 
   const post = (o) => ({ ...B().newBlock(o.title || '', o.html || ''), author: me(), date: todayISO(), published: false, excerpt: '', tags: [], at: Date.now(), ...o });
-  const seed = () => ({
-    posts: [
-      post({ title: 'How to choose a kitchen layout', author: 'B. Jones', date: dayISO(-4), published: true, tags: ['design', 'tips'], excerpt: 'Straight, L-shaped, U-shaped or an island: what fits your room and the way you cook.',
-        html: '<p>The layout decides how the kitchen <b>feels every day</b>. Start with the room and the work triangle (sink, stove, fridge).</p><h3>Quick guide</h3><ul><li><b>Straight:</b> small rooms and studios</li><li><b>L-shaped:</b> the most flexible choice</li><li><b>U-shaped:</b> lots of storage, needs at least 2.4 m between the sides</li><li><b>Island:</b> only if there is 1 m of free space around it</li></ul><p>Not sure? Send us a request and we will draw two options for your room.</p>' }),
-      post({ title: 'What goes into the price of a kitchen', author: 'A. Smith', date: dayISO(-12), published: true, tags: ['prices', 'tips'], excerpt: 'Facades, hardware, countertop and installation: where the money goes and where it is safe to save.',
-        html: '<p>Three things make up most of the price: <b>facades</b>, <b>countertop</b> and <b>hardware</b>.</p><blockquote>Save on handles, not on hinges and drawer slides.</blockquote><p>An offer from us always lists every line, so you can compare it with any other quote.</p>' }),
-      post({ title: 'A day in our workshop', author: 'C. Brown', date: dayISO(-25), published: true, tags: ['workshop'], excerpt: 'From a sheet of MDF to a finished cabinet: the steps we repeat hundreds of times a year.',
-        html: '<p>Cutting, edging, drilling, assembling, checking. Every part is measured twice before it leaves the workshop.</p>' }),
-      post({ title: 'Spring promotion (draft)', author: 'A. Smith', date: dayISO(5), published: false, tags: ['news'], excerpt: 'Draft: free delivery for orders signed before the end of the month.', html: '<p>Details to be confirmed.</p>' })
-    ]
-  });
+  const seed = () => ({ posts: [] });
   const init = () => { if (!db) { db = load('blog', null) || seed(); save(); } };
   const find = id => { init(); return db.posts.find(p => p.id === id) || null; };
 

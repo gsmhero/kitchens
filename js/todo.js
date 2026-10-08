@@ -42,15 +42,6 @@
     if (Array.isArray(old) && old.length) {
       old.forEach(t => db.tasks.push(mk({ title: String(t[0]), status: t[1] ? 'done' : 'todo', doneAt: t[1] ? Date.now() : 0 })));
     } else {
-      const t = (title, o) => db.tasks.push(mk({ title, ...o }));
-      const d = n => addDays(todayISO(), n);
-      t('Call supplier about MDF delivery', { assignee: 'A. Smith', priority: 'high', due: d(1), tags: ['purchasing'], desc: 'Confirm the date for 30 sheets of MDF 18 mm and ask about a volume discount.',
-        checklist: [{ id: uid(), text: 'Get a quote', done: true }, { id: uid(), text: 'Compare with the second supplier', done: false }, { id: uid(), text: 'Place the order', done: false }] });
-      t('Send offer to Ivanov', { assignee: 'B. Jones', priority: 'urgent', due: d(-1), tags: ['sales'], status: 'doing' });
-      t('Check the Assembly team schedule', { assignee: 'C. Brown', priority: 'normal', due: d(3), tags: ['planning'] });
-      t('Service the panel saw', { assignee: 'C. Brown', priority: 'normal', due: d(6), tags: ['workshop'], repeat: 'monthly', status: 'todo' });
-      t('Update the catalogue photos', { assignee: 'B. Jones', priority: 'low', due: '', tags: ['catalogue'] });
-      t('Order edge tape and glue', { assignee: 'D. Davis', priority: 'high', due: d(0), tags: ['purchasing', 'workshop'], status: 'done', doneAt: Date.now() - 86400000 });
     }
     persist();
   }

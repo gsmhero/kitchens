@@ -218,6 +218,16 @@
     flowStages: () => stages.filter(s => !isArchiveStage(s)).map(s => ({ ...s })), // stages shown on the Flow board
     isArchive, archiveStageId: () => stages.find(isArchiveStage).id
   };
+  // one-time: remove the demo data that earlier versions saved in this browser (catalogue, offers, costs, tasks, articles, stock)
+  try {
+    if (!localStorage.getItem('demoWiped')) {
+      ['catalogue', 'offers', 'costs', 'tasks', 'todo', 'knowledge', 'blog', 'warehouse'].forEach(k => localStorage.removeItem(k));
+      const forms = JSON.parse(localStorage.getItem('forms') || 'null');
+      if (Array.isArray(forms)) localStorage.setItem('forms', JSON.stringify(forms.filter(f => !['Kitchen specification', 'Cabinet specification'].includes(f.name))));
+      localStorage.setItem('demoWiped', '1');
+    }
+  } catch (e) { /* storage unavailable */ }
+
   // ask the server who is logged in (session cookie), then draw the page
   $('#view').innerHTML = '<p class="sub">Loading…</p>';
   window.KitchensApi.boot().then(u => {
