@@ -12,8 +12,8 @@
 
   /* ---------- Registered-user tabs (from wireframe) ---------- */
   const TABS = [
-    'Dashboard', 'Flow', 'Archive', 'Stages', 'Forms', 'Branches and Roles', 'Admin', 'Staff', 'Knowledge',
-    'Warehouse', 'Product Catalogue', 'About Us', 'Blog', 'Price offers', 'Costs', 'ToDo', 'Agents'
+    'Dashboard', 'Flow', 'Archive', 'Stages', 'Forms', 'Branches and Roles', 'Staff', 'Knowledge',
+    'Warehouse', 'Product Catalogue', 'About Us', 'Blog', 'Price offers', 'Costs', 'ToDo', 'Agents', 'Admin'
   ];
   const slug = t => t.toLowerCase().replace(/\s+/g, '-');
 
