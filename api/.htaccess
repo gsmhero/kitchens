@@ -1,0 +1,7 @@
+# Only index.php may be opened from the web; helpers and the migration script are never served.
+<FilesMatch "^(?!index\.php$).*$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header set Cache-Control "no-store"
+</IfModule>

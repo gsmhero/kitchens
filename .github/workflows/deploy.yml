@@ -72,7 +72,7 @@ jobs:
           # Only the site files are uploaded; nothing is deleted on the server (no --delete).
           # StrictHostKeyChecking=yes: if the server's key is not the pinned one, the upload is refused.
           SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
-          rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html .htaccess css js "$USER@$HOST:${DEST%/}/"
+          rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html .htaccess css js api "$USER@$HOST:${DEST%/}/"
           echo "Uploaded."
 
       - name: Write the database settings on the server (outside the web folder)
@@ -85,12 +85,24 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
           if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then echo "No database secrets yet: skipped."; exit 0; fi
           # Every value is base64-encoded, so passwords with quotes or $ signs cannot break the file.
           b64() { printf '%s' "$1" | base64 -w0; }
-          printf "<?php\nreturn [\n  'db_host' => base64_decode('%s'),\n  'db_name' => base64_decode('%s'),\n  'db_user' => base64_decode('%s'),\n  'db_pass' => base64_decode('%s'),\n];\n" \
-            "$(b64 "${DB_HOST:-localhost}")" "$(b64 "$DB_NAME")" "$(b64 "$DB_USER")" "$(b64 "$DB_PASS")" > /tmp/kitchens.config.php
+          {
+            printf "<?php\nreturn [\n"
+            for pair in "db_host:${DB_HOST:-localhost}" "db_name:$DB_NAME" "db_user:$DB_USER" "db_pass:$DB_PASS" \
+                        "smtp_host:$SMTP_HOST" "smtp_port:$SMTP_PORT" "smtp_user:$SMTP_USER" "smtp_pass:$SMTP_PASS" "smtp_from:$SMTP_FROM" "site_url:$SITE_URL"; do
+              printf "  '%s' => base64_decode('%s'),\n" "${pair%%:*}" "$(b64 "${pair#*:}")"
+            done
+            printf "];\n"
+          } > /tmp/kitchens.config.php
           SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
           # the file goes ONE LEVEL ABOVE the public web folder, readable only by the account itself (chmod 600)
           $SSH "$USER@$HOST" "umask 077; f=\"\$(dirname '${DEST%/}')/kitchens.config.php\"; cat > \"\$f\" && chmod 600 \"\$f\" && echo \"Database settings written to the folder above the web folder.\"" < /tmp/kitchens.config.php
@@ -118,6 +130,19 @@ jobs:
             exit(1);
           }
           PHP
+
+      - name: Update the database tables
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT }}
+          USER: ${{ secrets.SSH_USER }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          if [ -z "$DB_NAME" ]; then echo "No database secrets yet: skipped."; exit 0; fi
+          SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          # syntax check of every PHP file first, then the (repeatable) migration
+          $SSH "$USER@$HOST" "cd '${DEST%/}/api' && for f in index.php migrate.php lib/*.php; do php -l \"\$f\" || exit 1; done && php migrate.php"
 
       - name: Remove the key from the runner
         if: always()
