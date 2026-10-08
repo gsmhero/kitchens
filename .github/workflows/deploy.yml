@@ -1,38 +1,80 @@
 name: Deploy to server
 
-# Every push to main uploads the site to the server over SSH (password login).
-# Secrets used: SSH_HOST, SSH_PORT, SSH_USER, SSH_PASS, DEPLOY_PATH (Settings -> Secrets and variables -> Actions).
+# Every push to main uploads the site over SSH with a dedicated deploy KEY (no password).
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   SSH_PRIVATE_KEY  private half of the deploy key         SSH_KNOWN_HOSTS  the server's host key line(s), checked strictly
+#   SSH_HOST  SSH_PORT  SSH_USER                            DEPLOY_PATH      web folder on the server ("." if the key is locked with rrsync)
+# Optional variable:  SITE_URL  (e.g. https://yourdomain.com)  -> a smoke test checks that the site answers after deploying.
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:        # also lets you run it by hand from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read            # the workflow can only read the repository, nothing else
+
+concurrency:
+  group: deploy             # never two deployments at the same time
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production # lets you restrict this job to main and add an approval in Settings -> Environments
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1, pinned to an exact commit
+        with:
+          persist-credentials: false
 
-      - name: Install sshpass
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Check that the secrets exist
+        env:
+          K: ${{ secrets.SSH_PRIVATE_KEY }}
+          H: ${{ secrets.SSH_KNOWN_HOSTS }}
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          missing=""
+          [ -n "$K" ] || missing="$missing SSH_PRIVATE_KEY"
+          [ -n "$H" ] || missing="$missing SSH_KNOWN_HOSTS"
+          [ -n "$HOST" ] || missing="$missing SSH_HOST"
+          [ -n "$USER" ] || missing="$missing SSH_USER"
+          [ -n "$DEST" ] || missing="$missing DEPLOY_PATH"
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+
+      - name: Prepare SSH (deploy key and pinned host key)
+        env:
+          K: ${{ secrets.SSH_PRIVATE_KEY }}
+          H: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$K" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$H" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Upload the site
         env:
           HOST: ${{ secrets.SSH_HOST }}
           PORT: ${{ secrets.SSH_PORT }}
           USER: ${{ secrets.SSH_USER }}
-          SSHPASS: ${{ secrets.SSH_PASS }}
           DEST: ${{ secrets.DEPLOY_PATH }}
         run: |
-          # Only the site itself is uploaded (no --delete: other files in the folder are left alone).
-          # The server's host key is trusted on first contact (accept-new); a changed key is refused.
-          OPTS="-p ${PORT:-22} -o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive"
-          echo "Uploading to $USER@$HOST (port ${PORT:-22})"
-          if sshpass -e rsync -az --info=stats1 -e "ssh $OPTS" index.html css js "$USER@$HOST:${DEST%/}/"; then
-            echo "Uploaded with rsync."
-          else
-            echo "rsync failed (maybe not installed on the server or the path is wrong): trying scp ..."
-            sshpass -e scp -r -P "${PORT:-22}" -o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no index.html css js "$USER@$HOST:${DEST%/}/"
-            echo "Uploaded with scp."
-          fi
+          # Only the site files are uploaded; nothing is deleted on the server (no --delete).
+          # StrictHostKeyChecking=yes: if the server's key is not the pinned one, the upload is refused.
+          SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html css js "$USER@$HOST:${DEST%/}/"
+          echo "Uploaded."
+
+      - name: Remove the key from the runner
+        if: always()
+        run: shred -u ~/.ssh/deploy_key 2>/dev/null || rm -f ~/.ssh/deploy_key
+
+      - name: Smoke test
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then echo "SITE_URL variable not set: smoke test skipped."; exit 0; fi
+          curl -fsSL --retry 5 --retry-delay 3 "$SITE_URL" | grep -q "Kitchens" && echo "Site answers and looks right: $SITE_URL"
