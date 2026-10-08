@@ -70,6 +70,15 @@ $sql = [
   updated_by INT UNSIGNED NULL,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) $T",
+"CREATE TABLE IF NOT EXISTS kv (
+  k VARCHAR(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL PRIMARY KEY,
+  v LONGTEXT NULL,
+  rev BIGINT UNSIGNED NOT NULL,
+  updated_by INT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY ix_kv_rev (rev)
+) $T",
+"CREATE TABLE IF NOT EXISTS kv_counter (n BIGINT UNSIGNED NOT NULL) $T",
 ];
 foreach ($sql as $s) db()->exec($s);
 
@@ -81,6 +90,8 @@ function add_column(string $table, string $col, string $def): void {
 add_column('branches', 'city', "VARCHAR(120) NOT NULL DEFAULT ''");
 add_column('branches', 'phone', "VARCHAR(60) NOT NULL DEFAULT ''");
 add_column('branches', 'manager', "VARCHAR(120) NOT NULL DEFAULT ''");
+
+if (!q('SELECT 1 FROM kv_counter')->fetch()) q('INSERT INTO kv_counter (n) VALUES (0)');
 
 // The built-in Owner role (full rights, cannot be edited or deleted).
 if (!q('SELECT 1 FROM roles WHERE locked = 1 LIMIT 1')->fetch()) q('INSERT INTO roles (name, locked) VALUES ("Owner", 1)');

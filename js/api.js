@@ -43,20 +43,24 @@
   };
   // reload some or all cached lists; unknown names are ignored
   async function load(...names) {
-    if (!state.user) return;
     if (!names.length) names = Object.keys(loaders);
+    if (!state.user) names = names.filter(n => n === 'roles' || n === 'people'); // visitors only need the team and role names
     await Promise.all(names.map(n => loaders[n] && loaders[n]()));
   }
 
   // first page load: who is logged in (session cookie), then the lists
   async function boot() {
     try { state.home = await call('page_get', undefined, { slug: 'home' }); } catch (e) { /* the default Home page is shown */ }
-    try { await refreshSession(); await load(); } catch (e) { console.error(e); applySession({ user: null, levels: {} }); state.offline = true; }
+    try {
+      await refreshSession(); await load();
+      await window.KitchensSync.hydrate(state.user); // the shared data from the database
+      const m = /^#share\/([\w-]+)/.exec(location.hash); if (m) await window.KitchensSync.shadowShare(m[1]); // a client opening their link
+    } catch (e) { console.error(e); applySession({ user: null, levels: {} }); state.offline = true; }
     return state.user;
   }
   // after login / registration / accepting an invitation
   async function setSession(s) { applySession(s); await load(); return state.user; }
-  async function logout() { try { await call('logout', {}); } catch (e) { /* the session cookie is dropped anyway */ } await refreshSession().catch(() => applySession({ user: null, levels: {} })); }
+  async function logout() { try { await window.KitchensSync.flush(); await call('logout', {}); window.KitchensSync.purge(); } catch (e) { /* the session cookie is dropped anyway */ } await refreshSession().catch(() => applySession({ user: null, levels: {} })); }
 
   window.KitchensApi = { state, call, load, boot, setSession, logout, refreshSession };
 })();

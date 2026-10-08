@@ -161,13 +161,13 @@
   // Accounts live on the server (api/index.php): passwords are hashed there and the session is an HttpOnly cookie.
   // After login / registration / accepting an invitation the server answers with the session snapshot.
   async function setSession(snap) {
+    await window.KitchensSync.flush();               // e.g. a request a visitor just sent
     await window.KitchensApi.setSession(snap);
     user = window.KitchensApi.state.user;
     location.hash = homeRoute();
-    closeModals(); render();
-    if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }
+    location.reload();                                // start clean: the shared data is loaded for this person
   }
-  async function logout() { await window.KitchensApi.logout(); user = null; location.hash = 'home'; render(); }
+  async function logout() { await window.KitchensApi.logout(); user = null; location.hash = "home"; location.reload(); }
 
   /* ---------- Events ---------- */
   const closeModals = () => $$('.modal').forEach(m => m.hidden = true);
@@ -231,6 +231,7 @@
   // ask the server who is logged in (session cookie), then draw the page
   $('#view').innerHTML = '<p class="sub">Loading…</p>';
   window.KitchensApi.boot().then(u => {
+    stages = withArchiveLast(store.get('stages') || DEFAULT_STAGES.map(s => ({ ...s }))); // stages come from the database now
     user = u;
     render();
     if (window.KitchensApi.state.offline) $('#view').insertAdjacentHTML('afterbegin', '<div class="placeholder">The server does not answer. Some features are unavailable; please reload the page.</div>');

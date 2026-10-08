@@ -4,6 +4,7 @@
 declare(strict_types=1);
 require __DIR__ . '/lib/bootstrap.php';
 require __DIR__ . '/lib/mail.php';
+require __DIR__ . '/lib/kv.php';
 
 set_exception_handler(function (Throwable $e) {
     error_log('[kitchens] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
@@ -63,11 +64,11 @@ case 'logout':
 
 /* ---------- roles and branches (owner only to change, everyone logged in may read the names) ---------- */
 case 'roles': {
-    require_login();
+    $viewer = me();   // guests get only the role names (the Request page shows them next to people)
     $roles = q('SELECT id, name, locked FROM roles ORDER BY locked DESC, name')->fetchAll();
     $perms = [];
     foreach (q('SELECT role_id, perm_key, level FROM role_permissions')->fetchAll() as $p) $perms[(int) $p['role_id']][$p['perm_key']] = (int) $p['level'];
-    foreach ($roles as &$r) { $r['id'] = (int) $r['id']; $r['locked'] = (bool) $r['locked']; $r['perms'] = (object) ($perms[$r['id']] ?? []); }
+    foreach ($roles as &$r) { $r['id'] = (int) $r['id']; $r['locked'] = (bool) $r['locked']; $r['perms'] = (object) ($viewer ? ($perms[$r['id']] ?? []) : []); }
     out(['roles' => $roles]);
 }
 case 'role_save': {
@@ -111,8 +112,7 @@ case 'branches': {
     foreach ($rows as &$r) $r['id'] = (int) $r['id'];
     out(['branches' => $rows]);
 }
-case 'directory': { // names of the team (employees + owner), for pickers; any logged-in person may read it
-    require_login();
+case 'directory': { // names of the team (employees + owner), for pickers and the Request page; public (the same names are on the About Us page)
     $rows = q('SELECT name, role_id, is_owner FROM users WHERE status = "active" AND (role_id IS NOT NULL OR is_owner = 1) ORDER BY name')->fetchAll();
     out(['people' => array_map(fn($r) => ['name' => $r['name'], 'roleId' => $r['role_id'] ? (int) $r['role_id'] : null, 'isOwner' => (bool) $r['is_owner']], $rows)]);
 }
@@ -253,6 +253,38 @@ case 'page_save': {
     if (strlen($json) > 12 * 1024 * 1024) fail('The page is too large. Remove some images.', 413);
     q('INSERT INTO site_pages (slug, content, updated_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE content = VALUES(content), updated_by = VALUES(updated_by)', [$slug, $json, $me['id']]);
     out(['ok' => true]);
+}
+
+/* ---------- shared data store (see lib/kv.php) ---------- */
+case 'kv_load':
+case 'kv_poll':
+    out(kv_changes(me(), (int) ($_GET['since'] ?? 0)));
+
+case 'kv_save': {
+    $u = me();
+    if (!$u) { // visitors may only send requests and comments: a little throttle against spam
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        q('DELETE FROM login_attempts WHERE at < (UTC_TIMESTAMP() - INTERVAL 1 DAY)');
+        if ((int) q('SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND email = "kv:write" AND at > (UTC_TIMESTAMP() - INTERVAL 1 HOUR)', [$ip])->fetchColumn() >= 120) fail('Too many requests. Try again later.', 429);
+        note_attempt('kv:write');
+    }
+    $results = [];
+    foreach ((array) ($b['changes'] ?? []) as $c) {
+        $key = (string) ($c['k'] ?? '');
+        try {
+            $r = kv_write($key, isset($c['base']) ? (string) $c['base'] : null, array_key_exists('v', $c) && $c['v'] !== null ? (string) $c['v'] : null, $u);
+            $results[] = ['k' => $key, 'ok' => true] + $r;
+        } catch (RuntimeException $e) {
+            $results[] = ['k' => $key, 'ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+    out(['results' => $results]);
+}
+
+case 'share_get': { // the page a client opens from the link staff sent: one request and the offers attached to it
+    $r = kv_share((string) ($_GET['id'] ?? ''));
+    if (!$r) fail('This page was not found', 404);
+    out($r);
 }
 default:
     fail('Unknown action', 404);
