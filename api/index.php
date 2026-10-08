@@ -235,10 +235,19 @@ case 'page_save': {
             if (is_array($d) && is_string($d['data'] ?? null) && str_starts_with($d['data'], 'data:'))
                 $docs[] = ['id' => substr((string) ($d['id'] ?? ''), 0, 40), 'name' => mb_substr((string) ($d['name'] ?? 'file'), 0, 200), 'size' => (int) ($d['size'] ?? 0), 'type' => mb_substr((string) ($d['type'] ?? ''), 0, 100), 'data' => $d['data']];
         }
+        $slides = [];
+        foreach (array_slice((array) ($k['slides'] ?? []), 0, 12) as $s) {
+            if (!is_array($s)) continue;
+            $link = trim((string) ($s['link'] ?? ''));
+            $slides[] = ['image' => $okSrc($s['image'] ?? '') ? (string) ($s['image'] ?? '') : '', 'title' => mb_substr((string) ($s['title'] ?? ''), 0, 200),
+                'text' => mb_substr((string) ($s['text'] ?? ''), 0, 400), 'button' => mb_substr((string) ($s['button'] ?? ''), 0, 60),
+                'link' => preg_match('#^(https?://\S+|\#[A-Za-z0-9/_\-]+)$#', $link) ? mb_substr($link, 0, 300) : ''];
+        }
         $hero = $okSrc($k['hero'] ?? '') ? (string) ($k['hero'] ?? '') : '';
         $clean[] = ['id' => substr(preg_replace('/[^A-Za-z0-9_\-]/', '', (string) ($k['id'] ?? '')), 0, 40) ?: bin2hex(random_bytes(4)),
             'title' => mb_substr((string) ($k['title'] ?? ''), 0, 200), 'html' => mb_substr((string) ($k['html'] ?? ''), 0, 200000),
-            'hero' => $hero, 'gallery' => $gallery, 'docs' => $docs, 'video' => mb_substr((string) ($k['video'] ?? ''), 0, 300), 'visible' => !empty($k['visible'])];
+            'hero' => $hero, 'gallery' => $gallery, 'docs' => $docs, 'video' => mb_substr((string) ($k['video'] ?? ''), 0, 300), 'visible' => !empty($k['visible']),
+            'type' => ($k['type'] ?? '') === 'banner' ? 'banner' : 'content', 'slides' => $slides, 'interval' => max(3, min(20, (int) ($k['interval'] ?? 5)))];
     }
     $json = json_encode(['blocks' => $clean], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (strlen($json) > 12 * 1024 * 1024) fail('The page is too large. Remove some images.', 413);
