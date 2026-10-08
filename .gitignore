@@ -1,0 +1,12 @@
+# secrets and keys must never be committed
+.ssh/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*deploy_key*
+github-deploy*
+kitchens_deploy*
+
+# local tooling
+.claude/
