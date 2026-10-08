@@ -75,6 +75,50 @@ jobs:
           rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html .htaccess css js "$USER@$HOST:${DEST%/}/"
           echo "Uploaded."
 
+      - name: Write the database settings on the server (outside the web folder)
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT }}
+          USER: ${{ secrets.SSH_USER }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: |
+          if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then echo "No database secrets yet: skipped."; exit 0; fi
+          # Every value is base64-encoded, so passwords with quotes or $ signs cannot break the file.
+          b64() { printf '%s' "$1" | base64 -w0; }
+          printf "<?php\nreturn [\n  'db_host' => base64_decode('%s'),\n  'db_name' => base64_decode('%s'),\n  'db_user' => base64_decode('%s'),\n  'db_pass' => base64_decode('%s'),\n];\n" \
+            "$(b64 "${DB_HOST:-localhost}")" "$(b64 "$DB_NAME")" "$(b64 "$DB_USER")" "$(b64 "$DB_PASS")" > /tmp/kitchens.config.php
+          SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          # the file goes ONE LEVEL ABOVE the public web folder, readable only by the account itself (chmod 600)
+          $SSH "$USER@$HOST" "umask 077; f=\"\$(dirname '${DEST%/}')/kitchens.config.php\"; cat > \"\$f\" && chmod 600 \"\$f\" && echo \"Database settings written to the folder above the web folder.\"" < /tmp/kitchens.config.php
+          shred -u /tmp/kitchens.config.php 2>/dev/null || rm -f /tmp/kitchens.config.php
+
+      - name: Check the database connection
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT }}
+          USER: ${{ secrets.SSH_USER }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          if [ -z "$DB_NAME" ]; then echo "No database secrets yet: skipped."; exit 0; fi
+          SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          $SSH "$USER@$HOST" "CFG=\"\$(dirname '${DEST%/}')/kitchens.config.php\" php" <<'PHP'
+          <?php
+          $c = include getenv('CFG');
+          try {
+            $pdo = new PDO('mysql:host=' . $c['db_host'] . ';dbname=' . $c['db_name'] . ';charset=utf8mb4', $c['db_user'], $c['db_pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            echo 'Database connection OK, MySQL ' . $pdo->query('SELECT VERSION()')->fetchColumn() . PHP_EOL;
+            echo 'Tables in the database: ' . $pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()')->fetchColumn() . PHP_EOL;
+          } catch (Throwable $e) {
+            fwrite(STDERR, 'Database connection FAILED: ' . $e->getMessage() . PHP_EOL);
+            exit(1);
+          }
+          PHP
+
       - name: Remove the key from the runner
         if: always()
         run: shred -u ~/.ssh/deploy_key 2>/dev/null || rm -f ~/.ssh/deploy_key
