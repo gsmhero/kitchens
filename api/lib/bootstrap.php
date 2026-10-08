@@ -130,9 +130,11 @@ function site_url(): string {
 
 /* ---------- brute-force protection ---------- */
 function too_many_attempts(string $email): bool {
+    $limit = (int) cfg('login_limit', 0);   // 0 = no limit (testing); set the secret LOGIN_LIMIT, e.g. 10, to switch it on before going public
+    if ($limit <= 0) return false;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     q('DELETE FROM login_attempts WHERE at < (UTC_TIMESTAMP() - INTERVAL 1 DAY)');
     $n = q('SELECT COUNT(*) FROM login_attempts WHERE at > (UTC_TIMESTAMP() - INTERVAL 15 MINUTE) AND (ip = ? OR email = ?)', [$ip, strtolower($email)])->fetchColumn();
-    return (int) $n >= 10;
+    return (int) $n >= $limit;
 }
 function note_attempt(string $email): void { q('INSERT INTO login_attempts (ip, email, at) VALUES (?, ?, UTC_TIMESTAMP())', [$_SERVER['REMOTE_ADDR'] ?? '', strtolower($email)]); }

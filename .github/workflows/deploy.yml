@@ -90,6 +90,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          LOGIN_LIMIT: ${{ vars.LOGIN_LIMIT }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
           if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then echo "No database secrets yet: skipped."; exit 0; fi
@@ -98,7 +99,7 @@ jobs:
           {
             printf "<?php\nreturn [\n"
             for pair in "db_host:${DB_HOST:-localhost}" "db_name:$DB_NAME" "db_user:$DB_USER" "db_pass:$DB_PASS" \
-                        "smtp_host:$SMTP_HOST" "smtp_port:$SMTP_PORT" "smtp_user:$SMTP_USER" "smtp_pass:$SMTP_PASS" "smtp_from:$SMTP_FROM" "site_url:$SITE_URL"; do
+                        "smtp_host:$SMTP_HOST" "smtp_port:$SMTP_PORT" "smtp_user:$SMTP_USER" "smtp_pass:$SMTP_PASS" "smtp_from:$SMTP_FROM" "site_url:$SITE_URL" "login_limit:$LOGIN_LIMIT"; do
               printf "  '%s' => base64_decode('%s'),\n" "${pair%%:*}" "$(b64 "${pair#*:}")"
             done
             printf "];\n"
