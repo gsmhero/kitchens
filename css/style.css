@@ -660,3 +660,15 @@ h4.mini{margin:14px 0 6px;font-size:14px}
 .perm-table{width:100%}
 .perm-table td:last-child{width:170px}
 @media (max-width:760px){.roles-ui{grid-template-columns:1fr}.role-list{flex-direction:row;flex-wrap:wrap;max-height:none}}
+
+/* gallery slider with arrows (public pages) and the full-size photo view */
+.pf-slider{position:relative;margin:12px 0;background:#f3f1ec;border-radius:10px;overflow:hidden}
+.pf-slider .sl-main{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.pf-slider .sl-main img{display:block;width:100%;max-height:520px;object-fit:contain;margin:0 auto}
+.sl-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:28px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.sl-btn:hover{background:rgba(0,0,0,.75)}
+.sl-btn.prev{left:10px}.sl-btn.next{right:10px}
+.sl-count{position:absolute;right:10px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px}
+.sl-count:empty{display:none}
+.lightbox{position:relative}
+.lightbox .sl-btn.prev{left:6px}.lightbox .sl-btn.next{right:6px}
