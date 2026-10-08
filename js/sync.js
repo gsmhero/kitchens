@@ -103,6 +103,7 @@
         if (!r.ok) { problem = r.error || 'not saved'; stale = true; return; }
         base[r.k] = sent[r.k];                     // the next change is measured from what we just sent
         maxRev = Math.max(maxRev, r.rev || 0);
+        if (r.v === null && sent[r.k] !== null) return;   // a document this person may only add to, not read back (e.g. a visitor's request)
         if (r.v !== sent[r.k] && !same(r.v, sent[r.k]) && !dirty.has(r.k)) { // others changed it too: keep the merged copy
           if (r.v === null) silentRemove(r.k); else silentSet(r.k, r.v);
           stale = true;
