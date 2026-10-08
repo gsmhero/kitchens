@@ -65,7 +65,7 @@ jobs:
           # Only the site files are uploaded; nothing is deleted on the server (no --delete).
           # StrictHostKeyChecking=yes: if the server's key is not the pinned one, the upload is refused.
           SSH="ssh -i $HOME/.ssh/deploy_key -p ${PORT:-22} -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
-          rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html css js "$USER@$HOST:${DEST%/}/"
+          rsync -rlptz --chmod=D755,F644 -e "$SSH" index.html .htaccess css js "$USER@$HOST:${DEST%/}/"
           echo "Uploaded."
 
       - name: Remove the key from the runner
