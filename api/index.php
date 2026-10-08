@@ -206,6 +206,45 @@ case 'invite_accept': {
     out(snapshotFresh());
 }
 
+
+/* ---------- editable site pages (the Home page): public to read, owner only to change ---------- */
+case 'page_get': {
+    $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower((string) ($_GET['slug'] ?? '')));
+    $r = q('SELECT content, updated_at FROM site_pages WHERE slug = ?', [$slug])->fetch();
+    out(['blocks' => $r ? (json_decode($r['content'], true)['blocks'] ?? []) : [], 'updatedAt' => $r['updated_at'] ?? null]);
+}
+case 'page_save': {
+    $me = require_owner();
+    $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower(str($b, 'slug', 60)));
+    if ($slug !== 'home') fail('Unknown page');
+    $blocks = $b['blocks'] ?? null;
+    if (!is_array($blocks) || count($blocks) > 60) fail('Too many blocks');
+    // images are kept as data: URLs (a regex on multi-megabyte strings can fail, so check the prefix and the alphabet instead)
+    $okSrc = function ($s) {
+        if (!is_string($s)) return false;
+        if ($s === '') return true;
+        if (preg_match('#^data:image/(jpeg|png|webp|gif);base64,#', $s, $m)) { $d = substr($s, strlen($m[0])); return strspn($d, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=') === strlen($d); }
+        return (bool) preg_match('#^https?://\S+$#', $s);
+    };
+    $clean = [];
+    foreach ($blocks as $k) {
+        if (!is_array($k)) continue;
+        $gallery = array_values(array_filter((array) ($k['gallery'] ?? []), $okSrc));
+        $docs = [];
+        foreach ((array) ($k['docs'] ?? []) as $d) {
+            if (is_array($d) && is_string($d['data'] ?? null) && str_starts_with($d['data'], 'data:'))
+                $docs[] = ['id' => substr((string) ($d['id'] ?? ''), 0, 40), 'name' => mb_substr((string) ($d['name'] ?? 'file'), 0, 200), 'size' => (int) ($d['size'] ?? 0), 'type' => mb_substr((string) ($d['type'] ?? ''), 0, 100), 'data' => $d['data']];
+        }
+        $hero = $okSrc($k['hero'] ?? '') ? (string) ($k['hero'] ?? '') : '';
+        $clean[] = ['id' => substr(preg_replace('/[^A-Za-z0-9_\-]/', '', (string) ($k['id'] ?? '')), 0, 40) ?: bin2hex(random_bytes(4)),
+            'title' => mb_substr((string) ($k['title'] ?? ''), 0, 200), 'html' => mb_substr((string) ($k['html'] ?? ''), 0, 200000),
+            'hero' => $hero, 'gallery' => $gallery, 'docs' => $docs, 'video' => mb_substr((string) ($k['video'] ?? ''), 0, 300), 'visible' => !empty($k['visible'])];
+    }
+    $json = json_encode(['blocks' => $clean], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (strlen($json) > 12 * 1024 * 1024) fail('The page is too large. Remove some images.', 413);
+    q('INSERT INTO site_pages (slug, content, updated_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE content = VALUES(content), updated_by = VALUES(updated_by)', [$slug, $json, $me['id']]);
+    out(['ok' => true]);
+}
 default:
     fail('Unknown action', 404);
 }

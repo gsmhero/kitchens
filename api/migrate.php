@@ -64,6 +64,12 @@ $sql = [
   at DATETIME NOT NULL,
   KEY ix_la_at (at), KEY ix_la_ip (ip), KEY ix_la_email (email)
 ) $T",
+"CREATE TABLE IF NOT EXISTS site_pages (
+  slug VARCHAR(60) NOT NULL PRIMARY KEY,
+  content LONGTEXT NOT NULL,
+  updated_by INT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) $T",
 ];
 foreach ($sql as $s) db()->exec($s);
 

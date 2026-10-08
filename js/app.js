@@ -12,7 +12,7 @@
 
   /* ---------- Registered-user tabs (from wireframe) ---------- */
   const TABS = [
-    'Dashboard', 'Flow', 'Archive', 'Stages', 'Forms', 'Branches and Roles', 'Staff', 'Knowledge',
+    'Dashboard', 'Flow', 'Archive', 'Stages', 'Forms', 'Branches and Roles', 'Admin', 'Staff', 'Knowledge',
     'Warehouse', 'Product Catalogue', 'About Us', 'Blog', 'Price offers', 'Costs', 'ToDo', 'Agents'
   ];
   const slug = t => t.toLowerCase().replace(/\s+/g, '-');
@@ -45,7 +45,7 @@
 
   /* ---------- Guest pages ---------- */
   const GUEST = {
-    home: () => `
+    home: () => window.KitchensPages.PublicHome(() => `
       <section class="hero">
         <h1>Custom kitchens, made in our own workshop</h1>
         <p>From measurement to installation — transparent stages, fair prices, reliable deadlines.</p>
@@ -54,7 +54,7 @@
       <div class="grid g3">
         ${['Design', 'Production', 'Installation'].map((t, i) => `
           <div class="card"><h3>${i + 1}. ${t}</h3><p class="sub">Placeholder text describing the ${t.toLowerCase()} stage of your project.</p></div>`).join('')}
-      </div>`,
+      </div>`), // js/home.js: blocks edited in the Admin tab; this is the default when there are none
     catalogue: () => window.KitchensPages.PublicCatalogue(), // js/catalogue.js: published products
     about: () => window.KitchensPages.PublicAbout(), // js/profiles.js: cards of the team profiles
     blog: () => window.KitchensPages.PublicBlog(), // js/blog.js: published posts
@@ -85,7 +85,7 @@
   const RR = () => window.KitchensRoles;
   // "Owner", "Employee · Designer" or "User" (a customer without employee rights)
   function roleLabel() {
-    if (RR().isOwner(user)) return 'Owner';
+    if (RR().isOwner(user)) return 'Owner · Admin';
     const rid = RR().roleIdOf(user);
     if (!rid) return 'User';
     const r = RR().list().find(x => x.id === rid);

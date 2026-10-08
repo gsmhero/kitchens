@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const state = { user: null, levels: {}, csrf: '', permKeys: [], roles: [], branches: [], people: [], staff: [], invitations: [] };
+  const state = { home: { blocks: [] }, user: null, levels: {}, csrf: '', permKeys: [], roles: [], branches: [], people: [], staff: [], invitations: [] };
 
   async function call(action, data, query) {
     const qs = '?a=' + encodeURIComponent(action) + (query ? '&' + new URLSearchParams(query) : '');
@@ -50,6 +50,7 @@
 
   // first page load: who is logged in (session cookie), then the lists
   async function boot() {
+    try { state.home = await call('page_get', undefined, { slug: 'home' }); } catch (e) { /* the default Home page is shown */ }
     try { await refreshSession(); await load(); } catch (e) { console.error(e); applySession({ user: null, levels: {} }); state.offline = true; }
     return state.user;
   }

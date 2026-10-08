@@ -8,7 +8,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // extra permission rows that are not tabs: "Edit" lets an employee add situation costs (they see only their own entries)
   const COSTS_SIT = 'Costs: add situational';
-  const modules = () => [...window.Kitchens.TABS.filter(t => t !== 'Branches and Roles'), COSTS_SIT];
+  const modules = () => [...window.Kitchens.TABS.filter(t => t !== 'Branches and Roles' && t !== 'Admin'), COSTS_SIT];
   const A = () => window.KitchensApi, S = () => A().state;
   const redraw = () => window.Kitchens.render();
   const fail = e => alert(e.message || e);
@@ -46,7 +46,7 @@
       return !r ? 0 : r.locked ? 2 : (r.perms[key] || 0);
     },
     // may this user open a tab? (About Us: any employee, to edit their own profile)
-    canTab: (user, tab) => tab === 'About Us' ? KR.isEmployee(user) : tab === 'Branches and Roles' ? KR.isOwner(user) : KR.level(user, tab) >= 1,
+    canTab: (user, tab) => tab === 'About Us' ? KR.isEmployee(user) : (tab === 'Branches and Roles' || tab === 'Admin') ? KR.isOwner(user) : KR.level(user, tab) >= 1,
     sitKey: COSTS_SIT
   };
 

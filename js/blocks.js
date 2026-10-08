@@ -130,8 +130,8 @@
 
   /* ---------- saving ---------- */
   let timer;
-  const setStatus = ok => {
-    const text = ok ? 'Saved ✓' : '⚠ Not saved: the browser storage is full. Remove some images or documents.';
+  const setStatus = (ok, msg) => {
+    const text = msg || (ok ? 'Saved ✓' : '⚠ Not saved: the browser storage is full. Remove some images or documents.');
     const el = document.getElementById('abStatus'); if (el) { el.textContent = text; el.style.color = ok ? '' : 'var(--bad)'; }
     api.status = text;
   };
