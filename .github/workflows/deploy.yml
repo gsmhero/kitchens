@@ -55,6 +55,13 @@ jobs:
           printf '%s\n' "$H" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Stamp the version into the script and style links
+        run: |
+          # The server lets browsers cache scripts and styles for a week. Putting the commit number in every link
+          # (index.html itself is never cached) makes visitors fetch the new files right after a deploy.
+          sed -i "s/?v=dev/?v=${GITHUB_SHA:0:8}/g" index.html
+          grep -c "?v=${GITHUB_SHA:0:8}" index.html
+
       - name: Upload the site
         env:
           HOST: ${{ secrets.SSH_HOST }}
