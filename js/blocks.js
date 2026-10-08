@@ -121,16 +121,6 @@
           <div id="vp-${b.id}">${previewVideo(b.video)}</div></div>`;
   }
 
-  // gallery on public pages: one big photo with arrows (and a counter); a click opens the photo full size
-  const slider = b => {
-    const n = b.gallery.length;
-    return `<div class="pf-slider" data-sl="${b.id}">
-      <button class="pf-thumb sl-main" data-pr="zoom" data-b="${b.id}" data-i="0" aria-label="Open photo"><img src="${b.gallery[0]}" alt=""></button>
-      ${n > 1 ? `<button class="sl-btn prev" data-sl-go="-1" data-b="${b.id}" aria-label="Previous photo">‹</button>
-        <button class="sl-btn next" data-sl-go="1" data-b="${b.id}" aria-label="Next photo">›</button>` : ''}
-      <span class="sl-count">${n > 1 ? `1 / ${n}` : ''}</span>
-    </div>`;
-  };
   const wrap = (i, n) => (i + n) % n;
   let lb = null; // photo open full size: { b, i }
   function showLightbox() {
@@ -142,12 +132,6 @@
       <img src="${lb.b.gallery[lb.i]}" alt=""><span class="sl-count">${n > 1 ? `${lb.i + 1} / ${n}` : ''}</span></div>`;
     m.hidden = false;
   }
-  function slide(box, b, delta) { // move the in-page slider
-    const main = box.querySelector('.sl-main'), i = wrap(+main.dataset.i + delta, b.gallery.length);
-    main.dataset.i = i; main.querySelector('img').src = b.gallery[i];
-    box.querySelector('.sl-count').textContent = `${i + 1} / ${b.gallery.length}`;
-  }
-
   // how a block looks to visitors; opts.title === false leaves the title out (a post page has its own heading)
   function publicHtml(b, opts = {}) {
     const text = sanitize(b.html);
@@ -155,7 +139,7 @@
       ${b.hero ? `<img class="pf-hero" src="${b.hero}" alt="">` : ''}
       ${b.title && opts.title !== false ? `<h2>${esc(b.title)}</h2>` : ''}
       ${text ? `<div class="rich">${text}</div>` : ''}
-      ${b.gallery.length ? slider(b) : ''}
+      ${b.gallery.length ? `<div class="pf-gallery">${b.gallery.map((g, i) => `<button class="pf-thumb" data-pr="zoom" data-b="${b.id}" data-i="${i}" aria-label="Open photo"><img src="${g}" alt=""></button>`).join('')}</div>` : ''}
       ${videoHtml(b.video)}
       ${b.docs.length ? `<div class="pf-docs"><h4>Documents</h4>${b.docs.map(d => `<a class="pf-doc" href="${d.data}" download="${esc(d.name)}">📄 <span>${esc(d.name)}</span> <small>${sizeOf(d.size)}</small></a>`).join('')}</div>` : ''}
     </section>`;
@@ -198,12 +182,6 @@
 
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
-    const go = e.target.closest('[data-sl-go]');
-    if (go) { // arrows of the in-page gallery
-      const f = find(go.dataset.b);
-      if (f) slide(go.closest('.pf-slider'), f.b, +go.dataset.slGo);
-      return;
-    }
     const lgo = e.target.closest('[data-lb-go]');
     if (lgo && lb) { lb.i = wrap(lb.i + +lgo.dataset.lbGo, lb.b.gallery.length); showLightbox(); return; }
     const zoom = e.target.closest('[data-pr=zoom]');
