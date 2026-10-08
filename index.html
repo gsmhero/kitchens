@@ -65,7 +65,7 @@
     <label>Password<input type="password" name="password" required></label>
     <p class="hint err" id="loginErr"></p>
     <button class="btn primary wide">Login</button>
-    <p class="hint">Team members: log in with the email of your invitation and the password you chose. Prototype: other accounts accept any password.</p>
+    <p class="hint">Log in with the email you registered with (team members: the email of your invitation) and your password.</p>
   </form>
 </div>
 <div class="modal" id="regModal" hidden>
@@ -74,12 +74,13 @@
     <h3>Registration</h3>
     <label>Name<input name="name" required></label>
     <label>Email<input type="email" name="email" required></label>
-    <label>Password<input type="password" name="password" required minlength="6"></label>
+    <label>Password<input type="password" name="password" required minlength="8"></label>
     <p class="hint err" id="regErr"></p>
     <button class="btn primary wide">Create account</button>
   </form>
 </div>
 
+<script src="js/api.js?v=dev"></script>
 <script src="js/branches-roles.js?v=dev"></script>
 <script src="js/forms.js?v=dev"></script>
 <script src="js/notify.js?v=dev"></script>

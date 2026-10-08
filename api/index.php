@@ -107,16 +107,22 @@ case 'role_delete': {
 }
 case 'branches': {
     require_login();
-    $rows = q('SELECT id, name, address FROM branches ORDER BY name')->fetchAll();
+    $rows = q('SELECT id, name, city, address, phone, manager FROM branches ORDER BY name')->fetchAll();
     foreach ($rows as &$r) $r['id'] = (int) $r['id'];
     out(['branches' => $rows]);
 }
+case 'directory': { // names of the team (employees + owner), for pickers; any logged-in person may read it
+    require_login();
+    $rows = q('SELECT name, role_id, is_owner FROM users WHERE status = "active" AND (role_id IS NOT NULL OR is_owner = 1) ORDER BY name')->fetchAll();
+    out(['people' => array_map(fn($r) => ['name' => $r['name'], 'roleId' => $r['role_id'] ? (int) $r['role_id'] : null, 'isOwner' => (bool) $r['is_owner']], $rows)]);
+}
 case 'branch_save': {
     require_owner();
-    $id = (int) ($b['id'] ?? 0); $name = str($b, 'name', 160); $addr = str($b, 'address', 255);
+    $id = (int) ($b['id'] ?? 0); $name = str($b, 'name', 160);
+    $f = [$name, str($b, 'city', 120), str($b, 'address', 255), str($b, 'phone', 60), str($b, 'manager', 120)];
     if ($name === '') fail('Enter a branch name');
-    if ($id) q('UPDATE branches SET name = ?, address = ? WHERE id = ?', [$name, $addr, $id]);
-    else { q('INSERT INTO branches (name, address) VALUES (?, ?)', [$name, $addr]); $id = (int) db()->lastInsertId(); }
+    if ($id) q('UPDATE branches SET name = ?, city = ?, address = ?, phone = ?, manager = ? WHERE id = ?', [...$f, $id]);
+    else { q('INSERT INTO branches (name, city, address, phone, manager) VALUES (?, ?, ?, ?, ?)', $f); $id = (int) db()->lastInsertId(); }
     out(['ok' => true, 'id' => $id]);
 }
 case 'branch_delete': {
@@ -146,12 +152,22 @@ case 'staff_update': {
     q('UPDATE users SET role_id = ?, branch_id = ?, status = ? WHERE id = ?', [$roleId ?: null, $branchId ?: null, $status, $id]);
     out(['ok' => true]);
 }
+case 'staff_delete': {
+    $me = require_level('Staff', 2);
+    $id = (int) ($b['id'] ?? 0);
+    $t = q('SELECT is_owner FROM users WHERE id = ?', [$id])->fetch();
+    if (!$t) fail('Person not found', 404);
+    if ($t['is_owner'] || $id === (int) $me['id']) fail('This person cannot be removed');
+    q('DELETE FROM users WHERE id = ?', [$id]);
+    out(['ok' => true]);
+}
 case 'invite': {
     $me = require_level('Staff', 2);
     $email = strtolower(str($b, 'email', 190)); $name = str($b, 'name', 120); $roleId = (int) ($b['roleId'] ?? 0); $branchId = (int) ($b['branchId'] ?? 0);
     if (!valid_email($email)) fail('Enter a valid email');
     if (!q('SELECT 1 FROM roles WHERE id = ? AND locked = 0', [$roleId])->fetch()) fail('Choose a role');
     if (q('SELECT 1 FROM users WHERE email = ?', [$email])->fetch()) fail('This email is already registered');
+    q('UPDATE invitations SET used_at = UTC_TIMESTAMP() WHERE email = ? AND used_at IS NULL', [$email]); // a new invitation replaces older open ones
     [$token, $hash] = new_token();
     q('INSERT INTO invitations (token_hash, email, name, role_id, branch_id, invited_by, expires_at) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP() + INTERVAL 14 DAY)',
       [$hash, $email, $name, $roleId, $branchId ?: null, $me['id']]);

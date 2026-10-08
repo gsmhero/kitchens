@@ -67,6 +67,15 @@ $sql = [
 ];
 foreach ($sql as $s) db()->exec($s);
 
+// columns added after the first release (checked first: MySQL has no ADD COLUMN IF NOT EXISTS)
+function add_column(string $table, string $col, string $def): void {
+    $has = q('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?', [$table, $col])->fetch();
+    if (!$has) db()->exec("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+}
+add_column('branches', 'city', "VARCHAR(120) NOT NULL DEFAULT ''");
+add_column('branches', 'phone', "VARCHAR(60) NOT NULL DEFAULT ''");
+add_column('branches', 'manager', "VARCHAR(120) NOT NULL DEFAULT ''");
+
 // The built-in Owner role (full rights, cannot be edited or deleted).
 if (!q('SELECT 1 FROM roles WHERE locked = 1 LIMIT 1')->fetch()) q('INSERT INTO roles (name, locked) VALUES ("Owner", 1)');
 if (!q('SELECT 1 FROM branches LIMIT 1')->fetch()) q('INSERT INTO branches (name) VALUES ("Main branch")');

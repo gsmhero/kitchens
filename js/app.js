@@ -86,7 +86,7 @@
   const placeholder = t => `<h1>${t}</h1><div class="placeholder">“${t}” section — to be built.</div>`;
 
   /* ---------- State ---------- */
-  let user = store.get('user');
+  let user = null; // the logged-in person, from the server session (js/api.js)
 
   /* ---------- Rendering ---------- */
   const RR = () => window.KitchensRoles;
@@ -165,25 +165,16 @@
   function renderNotifs() { if (window.KitchensNotify) window.KitchensNotify.renderBell(); }
 
   /* ---------- Auth ---------- */
-  // Accounts of registered people who are not employees live in the "users" registry: { name, email, salt, hash }.
-  // Employees have their credentials in the Staff record (created when they accept an invitation).
-  const norm = s => String(s || '').trim().toLowerCase();
-  const registry = () => store.get('users') || [];
-
-  function login(name) {
-    user = { name };
-    store.set('user', user);
-    // employees live in Staff; everybody else is kept in the registry of registered users
-    if (!RR().roleIdOf(user)) {
-      const known = registry();
-      if (!known.some(u => u.name === name)) { known.push({ name }); store.set('users', known); }
-      RR().setOwnerIfNone(name); // the first person who is not an employee becomes the owner
-    }
+  // Accounts live on the server (api/index.php): passwords are hashed there and the session is an HttpOnly cookie.
+  // After login / registration / accepting an invitation the server answers with the session snapshot.
+  async function setSession(snap) {
+    await window.KitchensApi.setSession(snap);
+    user = window.KitchensApi.state.user;
     location.hash = homeRoute();
     closeModals(); render();
-    if (window.KitchensNotify) { window.KitchensNotify.welcome(name); window.KitchensNotify.checkReminders(); renderNotifs(); } // first-visit note, task reminders
+    if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }
   }
-  function logout() { user = null; store.del('user'); location.hash = 'home'; render(); }
+  async function logout() { await window.KitchensApi.logout(); user = null; location.hash = 'home'; render(); }
 
   /* ---------- Events ---------- */
   const closeModals = () => $$('.modal').forEach(m => m.hidden = true);
@@ -208,45 +199,38 @@
   });
 
   $('#logoutBtn').addEventListener('click', logout);
+  const busy = (form, on) => { const b = form.querySelector('button.primary'); if (b) b.disabled = on; };
   $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const fd = new FormData(e.target), email = String(fd.get('email')).trim(), pw = String(fd.get('password')), err = $('#loginErr');
-    err.textContent = '';
-    const emp = await window.KitchensStaff.authenticate(email, pw); // employees first
-    if (emp.kind === 'employee') return login(emp.name);
-    if (emp.kind === 'invited') { err.textContent = 'Your invitation has not been accepted yet. Open the link from the invitation email first.'; return; }
-    if (emp.kind === 'badpw') { err.textContent = 'Wrong email or password.'; return; }
-    const acc = registry().find(u => u.hash && norm(u.email) === norm(email)); // then registered users
-    if (!acc || (await window.KitchensStaff.hash(pw, acc.salt)) !== acc.hash) { err.textContent = 'Wrong email or password. No account yet? Click Register.'; return; }
-    login(acc.name);
+    const fd = new FormData(e.target), err = $('#loginErr');
+    err.textContent = ''; busy(e.target, true);
+    try { await setSession(await window.KitchensApi.call('login', { email: String(fd.get('email')).trim(), password: String(fd.get('password')) })); e.target.reset(); }
+    catch (ex) { err.textContent = ex.message; }
+    busy(e.target, false);
   });
   $('#regForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const fd = new FormData(e.target), name = String(fd.get('name')).trim(), email = String(fd.get('email')).trim(), pw = String(fd.get('password')), err = $('#regErr');
-    err.textContent = '';
-    const S = window.KitchensStaff, reg = registry();
-    if (S.emailTaken(email)) { err.textContent = 'This email belongs to a team member. Please use Login (or the link in your invitation).'; return; }
-    if (S.nameTaken(name) && !(RR().isOwner({ name }) && !reg.some(u => u.name === name && u.hash))) { err.textContent = 'This name is already used by a team member. Please choose another.'; return; }
-    if (reg.some(u => u.hash && norm(u.email) === norm(email))) { err.textContent = 'An account with this email already exists. Please log in.'; return; }
-    if (reg.some(u => u.hash && norm(u.name) === norm(name))) { err.textContent = 'This name is already used. Please choose another.'; return; }
-    const salt = window.KitchensForms.uid() + window.KitchensForms.uid(), entry = { name, email, salt, hash: await S.hash(pw, salt) };
-    const i = reg.findIndex(u => u.name === name && !u.hash); // a name from an older session without credentials is claimed by this registration
-    if (i >= 0) reg[i] = entry; else reg.push(entry);
-    store.set('users', reg);
-    login(name);
+    const fd = new FormData(e.target), err = $('#regErr');
+    err.textContent = ''; busy(e.target, true);
+    try { await setSession(await window.KitchensApi.call('register', { name: String(fd.get('name')).trim(), email: String(fd.get('email')).trim(), password: String(fd.get('password')) })); e.target.reset(); }
+    catch (ex) { err.textContent = ex.message; }
+    busy(e.target, false);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
   window.addEventListener('hashchange', render);
 
   window.Kitchens = {
-    TABS, ORDERS, fmt, render, login, getUser: () => user,
+    TABS, ORDERS, fmt, render, setSession, getUser: () => user,
     getStages: () => stages.map(s => ({ ...s })), setStages, stageIndex, defaultStages: () => DEFAULT_STAGES.map(s => ({ ...s })),
     flowStages: () => stages.filter(s => !isArchiveStage(s)).map(s => ({ ...s })), // stages shown on the Flow board
     isArchive, archiveStageId: () => stages.find(isArchiveStage).id
   };
-  // a session from before the owner was recorded: the logged-in person (if not an employee) is the owner
-  if (user && !RR().roleIdOf(user)) RR().setOwnerIfNone(user.name);
-  render();
-  // a user who is already logged in when the page opens: first-visit note and task reminders
-  if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }
+  // ask the server who is logged in (session cookie), then draw the page
+  $('#view').innerHTML = '<p class="sub">Loading…</p>';
+  window.KitchensApi.boot().then(u => {
+    user = u;
+    render();
+    if (window.KitchensApi.state.offline) $('#view').insertAdjacentHTML('afterbegin', '<div class="placeholder">The server does not answer. Some features are unavailable; please reload the page.</div>');
+    if (user && window.KitchensNotify) { window.KitchensNotify.welcome(user.name); window.KitchensNotify.checkReminders(); renderNotifs(); }
+  });
 })();
