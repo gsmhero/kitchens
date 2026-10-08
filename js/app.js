@@ -38,14 +38,7 @@
   };
   const setStages = list => { stages = withArchiveLast(list); store.set('stages', stages); };
   const isArchive = ref => isArchiveStage(stages[stageIndex(ref)]);
-  const ORDERS = [
-    { id: 1042, client: 'Ivanov', stage: 'offer', sum: 180000, status: 'ok' },
-    { id: 1043, client: 'Petrova', stage: 'measure', sum: 150000, status: 'ok' },
-    { id: 1044, client: 'Sidorov', stage: 'production', sum: 200000, status: 'warn' },
-    { id: 1045, client: 'Kozlova', stage: 'design', sum: 100000, status: 'ok' },
-    { id: 1046, client: 'Morozov', stage: 'assembly', sum: 90000, status: 'bad' },
-    { id: 1047, client: 'Smirnova', stage: 'payment', sum: 50000, status: 'ok' }
-  ];
+  const ORDERS = []; // no demo orders: the Flow board shows real requests only
   const fmt = n => n.toLocaleString('en-US').replace(/,/g, ' ');
   const pill = s => `<span class="pill ${s}">${{ ok: 'On track', warn: 'At risk', bad: 'Delayed' }[s]}</span>`;
 

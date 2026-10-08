@@ -24,15 +24,17 @@
   const save = () => { try { localStorage.setItem('profiles', JSON.stringify(db)); return true; } catch (e) { return false; } };
 
   const block = (title, html) => B().newBlock(title, html);
-  const seed = () => ({
-    [slugOf('A. Smith')]: { owner: 'A. Smith', name: 'Alexey Smith', position: 'Sales manager', bio: 'I help clients choose a kitchen, prepare offers and keep every project on schedule.', email: 'a.smith@example.com', phone: '+7 000 000-00-01', avatar: '', published: true,
-      blocks: [block('How I work with clients', '<p>Every project starts with a conversation. I ask about the family, the cooking habits and the budget, then prepare a clear price offer with options.</p><ul><li>Reply within one working day</li><li>Fixed price in the offer</li><li>One contact person from measure to assembly</li></ul>')] },
-    [slugOf('B. Jones')]: { owner: 'B. Jones', name: 'Boris Jones', position: 'Kitchen designer', bio: 'Designer of modern and Scandinavian kitchens. I turn measurements and wishes into a working layout.', email: 'b.jones@example.com', phone: '+7 000 000-00-02', avatar: '', published: true,
-      blocks: [block('My design approach', '<p>A good kitchen is planned around <b>movement</b>: the work triangle, free space near the stove, and storage where you reach for things most.</p><blockquote>Beautiful and convenient are not opposites.</blockquote>')] },
-    [slugOf('C. Brown')]: { owner: 'C. Brown', name: 'Constantin Brown', position: 'Workshop foreman', bio: 'I lead the workshop: cutting, edging, drilling and quality control before delivery.', email: 'c.brown@example.com', phone: '+7 000 000-00-03', avatar: '', published: true,
-      blocks: [block('Quality in the workshop', '<p>Every part is checked twice: after cutting and before packing. We use soft-close hardware and PUR glue for edges as standard.</p>')] }
-  });
-  const init = () => { if (!db) { db = load('profiles', null) || seed(); save(); } };
+  const seed = () => ({}); // no demo profiles: every employee writes their own in About Us
+  const DEMO_OWNERS = ["A. Smith", "B. Jones", "C. Brown"];
+  const init = () => {
+    if (db) return;
+    db = load("profiles", null) || seed();
+    if (!load("demoProfilesRemoved", false)) { // one-time: drop the demo profiles saved by earlier versions
+      Object.keys(db).forEach(k => { if (DEMO_OWNERS.includes((db[k] || {}).owner)) delete db[k]; });
+      try { localStorage.setItem("demoProfilesRemoved", "true"); } catch (e) { /* ignore */ }
+    }
+    save();
+  };
 
   const blank = name => ({ owner: name, name, position: '', bio: '', email: '', phone: '', avatar: '', published: true, blocks: [] });
 

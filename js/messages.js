@@ -27,8 +27,7 @@
 
   // everybody a message can be sent to: registered users, employees and profile owners
   const people = () => {
-    let registered = []; try { registered = (JSON.parse(localStorage.getItem('users')) || []).map(u => u.name); } catch (e) { /* ignore */ }
-    const names = new Set([...registered, ...window.KitchensStaff.names(), ...window.KitchensProfiles.owners(), window.KitchensRoles.ownerName()]);
+    const names = new Set([...window.KitchensStaff.names(), ...window.KitchensProfiles.owners(), window.KitchensRoles.ownerName()]);
     names.delete(me());
     return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b));
   };

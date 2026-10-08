@@ -10,11 +10,6 @@
   window.KitchensPages = window.KitchensPages || {};
 
   const TEMPLATE = 'Client brief';
-  const SEED_USERS = [
-    { name: 'A. Smith', role: 'Manager' },
-    { name: 'B. Jones', role: 'Designer' },
-    { name: 'C. Brown', role: 'Workshop' }
-  ];
   const FF = () => window.KitchensForms;
   const esc = s => FF().esc(s);
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
@@ -30,7 +25,7 @@
     return r ? r.name : 'Employee';
   };
   const users = () => {
-    const names = new Set([...SEED_USERS.map(s => s.name), ...window.KitchensStaff.names(), ...load('users', []).map(u => u.name), window.KitchensRoles.ownerName()].filter(Boolean));
+    const names = new Set([...window.KitchensStaff.names(), window.KitchensRoles.ownerName()].filter(Boolean));
     return [...names].filter(n => window.KitchensRoles.isEmployee({ name: n })).sort((a, b) => a.localeCompare(b)).map(n => ({ name: n, role: roleText(n) }));
   };
   const isCustom = name => !!load(keyOf(name, 'form'), null);
