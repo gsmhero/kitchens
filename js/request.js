@@ -52,6 +52,8 @@
       return out;
     },
     users,
+    select: name => { if (users().some(u => u.name === name)) target = name; }, // #request/<name>: the person is chosen in advance
+    canReceive: name => users().some(u => u.name === name),
     // save a changed request back; false if the browser storage is full
     replace: (to, sub) => {
       try { localStorage.setItem(keyOf(to, 'subs'), JSON.stringify(inbox(to).map(s => s.id === sub.id ? sub : s))); return true; } catch (e) { return false; }

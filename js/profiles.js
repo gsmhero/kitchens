@@ -86,6 +86,7 @@
       <div><h1>${esc(p.name)}</h1><div class="sub">${esc(p.position)}</div>
         <p>${esc(p.bio)}</p>
         <div class="pf-contacts">${p.email ? `<a class="pill" href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a>` : ''}${p.phone ? `<span class="pill">☎ ${esc(p.phone)}</span>` : ''}
+          ${window.KitchensRequest.canReceive(p.owner) ? `<a class="btn primary small" href="#request/${encodeURIComponent(p.owner)}">📝 Send a request</a>` : ''}
           ${me() && p.owner !== me() ? `<a class="btn small" href="#messages/${encodeURIComponent(p.owner)}">💬 Send a message</a>` : ''}</div></div>
     </header>
     ${p.blocks.filter(b => b.visible).map(b => B().publicHtml(b, { bannerTag: 'h2' })).join('')}

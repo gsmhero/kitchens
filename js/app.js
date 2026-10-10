@@ -103,7 +103,7 @@
 
     const route = currentRoute();
     const view = $('#view');
-    $$('#mainMenu a').forEach(a => a.classList.toggle('active', route === a.dataset.page));
+    $$('#mainMenu a').forEach(a => a.classList.toggle('active', route === a.dataset.page || (a.dataset.page === 'request' && route.startsWith('request/'))));
 
     const isShare = route.startsWith('share/'), isCase = route.startsWith('case/');
     try {
@@ -136,7 +136,7 @@
           : (TAB_PAGES[tab] || ext[tab] || (() => placeholder(tab)))();
       } else {
         $$('#tabsRow button').forEach(b => b.classList.remove('active'));
-        view.innerHTML = route === 'request' ? window.KitchensPages.Request()
+        view.innerHTML = (route === 'request' || route.startsWith('request/')) ? (route.startsWith('request/') && window.KitchensRequest.select(decodeURIComponent(route.slice(8))), window.KitchensPages.Request())
           : isCase || route === 'notifications' || route.startsWith('messages') ? '<h1>Please log in</h1><div class="placeholder"><button class="link" data-open="loginModal">Log in</button> to open this page.</div>'
           : (GUEST[route] || GUEST.home)();
       }
