@@ -71,14 +71,28 @@
     if (dirty.size) schedule();
   }
   // a client who opens the link of their request: that one request (and its offers) is made readable here
-  async function shadowShare(id) {
+  async function shadowShare(id, refresh) {
     try {
       const r = await call('share_get', undefined, { id });
       const k = r.key;
-      silentSet(k, JSON.stringify([r.sub])); base[k] = rawGet.call(ls, k);
+      let cur = []; try { cur = JSON.parse(rawGet.call(ls, k) || '[]'); } catch (e) { cur = []; }
+      if (!Array.isArray(cur)) cur = [];
+      const at = cur.findIndex(s => s && s.id === r.sub.id);
+      if (at >= 0) { // already here (the client's copy, or a team member who can read the inbox): update it when the team changed it
+        if (!refresh || same(JSON.stringify(cur[at]), JSON.stringify(r.sub))) return false;
+        cur[at] = r.sub; const upd = JSON.stringify(cur); silentSet(k, upd); base[k] = upd; return true;
+      }
+      const list = JSON.stringify([...cur, r.sub]);
+      silentSet(k, list); base[k] = list;
       if (r.offers && r.offers.length && rawGet.call(ls, 'offers') === null) { silentSet('offers', JSON.stringify({ offers: r.offers, counter: 0 })); base.offers = null; }
-    } catch (e) { /* the page shows "not found" */ }
+      return true;
+    } catch (e) { return false; /* the page shows "not found" */ }
   }
+  // the link pasted into a tab that is already open on the site
+  window.addEventListener('hashchange', () => {
+    const m = /^#share\/([\w-]+)/.exec(location.hash);
+    if (m && enabled) shadowShare(m[1]).then(changed => { if (changed && window.Kitchens) window.Kitchens.render(); });
+  });
 
   /* ---------- send changes ---------- */
   function schedule() { clearTimeout(timer); timer = setTimeout(flush, 600); say('Saving…'); }
@@ -138,6 +152,10 @@
     } catch (e) { /* try again later */ }
     try { // the team / roles / my rights: redraw the page (no reload) when they changed
       if (await window.KitchensApi.refreshTeam() && !busy()) window.Kitchens.render();
+    } catch (e) { /* try again later */ }
+    try { // a client looking at their page sees what the team changes there
+      const m = /^#share\/([\w-]+)/.exec(location.hash);
+      if (m && !dirty.size && !flushing && await shadowShare(m[1], true) && !busy()) window.Kitchens.render();
     } catch (e) { /* try again later */ }
     maybeReload();
   }
