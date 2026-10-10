@@ -726,3 +726,5 @@ fieldset.spec #pcFields label{margin:0;min-width:0}
 fieldset.spec #pcFields label.wide{grid-column:1/-1}
 fieldset.spec #pcFields input:not([type=checkbox]):not([type=file]),fieldset.spec #pcFields select,fieldset.spec #pcFields textarea{width:100%;box-sizing:border-box}
 fieldset.spec #pcFields label.inline{display:flex;align-items:center;gap:8px}
+fieldset.spec #pcFields label.inline{flex-direction:row-reverse;justify-content:flex-end;align-self:center}
+fieldset.spec #pcFields label.inline input{flex:none;width:auto}
