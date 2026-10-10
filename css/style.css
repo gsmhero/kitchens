@@ -336,7 +336,7 @@ th.num,td.num{text-align:right;white-space:nowrap}
 .chip small{color:var(--muted)}
 .p-photos{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
 .p-photos .ph{width:84px;height:84px;aspect-ratio:auto}
-fieldset.spec{display:block;max-height:260px;overflow:auto}
+fieldset.spec{display:block;max-height:none;overflow:visible;min-width:0}
 fieldset.spec .fill{max-width:none}
 .pub-check{margin:6px 0 10px}
 .pub-card{cursor:pointer;display:flex;flex-direction:column;gap:4px}
@@ -719,3 +719,10 @@ h4.mini{margin:14px 0 6px;font-size:14px}
 .ans-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .chip.ok{background:#e1f2e8;border-color:#bfe0cd;color:#1d6b3f}
 .ans-empty{margin:0;font-size:12px;color:var(--muted)}
+
+/* product dialog: the fields of the chosen form are laid out in full inside the Specification box (no inner scrolling) */
+fieldset.spec #pcFields{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 12px;align-items:start}
+fieldset.spec #pcFields label{margin:0;min-width:0}
+fieldset.spec #pcFields label.wide{grid-column:1/-1}
+fieldset.spec #pcFields input:not([type=checkbox]):not([type=file]),fieldset.spec #pcFields select,fieldset.spec #pcFields textarea{width:100%;box-sizing:border-box}
+fieldset.spec #pcFields label.inline{display:flex;align-items:center;gap:8px}

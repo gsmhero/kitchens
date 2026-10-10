@@ -63,7 +63,7 @@
       default: return `<input type="${fl.type}" ${n} ${r} value="${esc(v)}" ${fl.type === 'number' ? 'step="any"' : ''}>`;
     }
   }
-  const fieldRows = (fields, values) => fields.map(fl => `<label class="${fl.type === 'checkbox' ? 'inline' : ''}"><span>${esc(fl.label)}${fl.required ? ' <b class="req">*</b>' : ''}</span>${fieldInput(fl, values[fl.id])}</label>`).join('')
+  const fieldRows = (fields, values) => fields.map(fl => `<label class="${fl.type === 'checkbox' ? 'inline' : ''} ${fl.type === 'textarea' || fl.type === 'file' ? 'wide' : ''}"><span>${esc(fl.label)}${fl.required ? ' <b class="req">*</b>' : ''}</span>${fieldInput(fl, values[fl.id])}</label>`).join('')
     || '<p class="sub">The form of this type has no fields.</p>';
 
   /* ---------- state ---------- */
