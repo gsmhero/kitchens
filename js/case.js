@@ -188,6 +188,29 @@
     </section>`;
   }
 
+  // The client's answers as compact tiles: filled values in a responsive grid, long text and files full width,
+  // ticked options as chips, and everything that is empty or unticked folded into one quiet line.
+  function answersHtml(sub) {
+    const FF = window.KitchensForms, tiles = [], chips = [], empty = [];
+    sub.fields.forEach(fl => {
+      const v = sub.values[fl.id], label = esc(fl.label);
+      if (fl.type === 'checkbox') { (v ? chips : empty).push(v ? `<span class="chip ok">✔ ${label}</span>` : label); return; }
+      if (fl.type === 'file') {
+        const has = (() => { try { return JSON.parse(v || '[]').length > 0; } catch (e) { return false; } })();
+        if (has) tiles.push(`<div class="ans wide"><span class="ans-l">${label}</span><span class="ans-v">${FF.filesHtml(v)}</span></div>`); else empty.push(label);
+        return;
+      }
+      const s = v == null ? '' : String(v).trim();
+      if (!s) { empty.push(label); return; }
+      const long = fl.type === 'textarea' || s.length > 60;
+      tiles.push(`<div class="ans ${long ? 'wide' : ''}"><span class="ans-l">${label}</span><span class="ans-v">${esc(s).replace(/\n/g, '<br>')}</span></div>`);
+    });
+    return `<div class="ans-grid">${tiles.join('')}</div>
+      ${chips.length ? `<div class="ans-chips">${chips.join('')}</div>` : ''}
+      ${empty.length ? `<p class="ans-empty">Not filled / no: ${empty.join(', ')}</p>` : ''}
+      ${!tiles.length && !chips.length ? '<p class="sub">The client left every field empty.</p>' : ''}`;
+  }
+
   window.KitchensPages.Case = (id, client) => {
     ctx = { id, client };
     const r = find(id);
@@ -221,7 +244,7 @@
 
     <section class="cblock">
       <header><h3>Request</h3><button class="chev" data-cs="toggle" data-bid="req">${reqOpen ? '▲' : '▼'}</button></header>
-      ${reqOpen ? `<div class="cb-body"><dl class="answers">${sub.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${fl.type === 'checkbox' ? (sub.values[fl.id] ? 'Yes' : 'No') : fl.type === 'file' ? window.KitchensForms.filesHtml(sub.values[fl.id]) : (esc(sub.values[fl.id]) || '—')}</dd>`).join('')}</dl></div>` : ''}
+      ${reqOpen ? `<div class="cb-body">${answersHtml(sub)}</div>` : ""}
     </section>
     ${c.blocks.map((b, i) => blockCard(b, c, i, client)).join('')}
     ${!c.blocks.length ? `<p class="sub">${client ? 'Nothing here yet.' : 'No blocks yet. Use “Add new block” above.'}</p>` : ''}`;
