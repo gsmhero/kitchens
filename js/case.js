@@ -199,7 +199,7 @@
     const reqOpen = !collapsed.has('req');
     return `
     <div class="case-top">
-      ${client ? '<span></span>' : '<button class="link back-btn" data-cs="back">‹ BACK</button>'}
+      ${client ? '<span></span>' : '<button class="link back-btn" data-cs="back">‹ BACK</button>' + (window.KitchensRoles.level(K().getUser(), 'Flow') >= 2 ? ' <button class="link danger-t" data-cs="del-req" title="Delete this request for good (spam or a test)">🗑 Delete request</button>' : '')}
       ${client ? '' : `<div class="share">LINK URL <input readonly value="${esc(url)}" id="shareUrl">
         <button class="btn small" data-cs="copy">COPY LINK</button><button class="btn small" data-cs="share">SHARE</button></div>`}
     </div>
@@ -267,6 +267,11 @@
     const done = () => redraw();
     switch (d.cs) {
       case 'back': location.hash = 'tab/flow'; return;
+      case 'del-req': {
+        const r = find(ctx.id);
+        if (r && window.KitchensRoles.level(K().getUser(), 'Flow') >= 2 && confirm('Delete the request from "' + r.sub.from.name + '" for good?\nThis cannot be undone.')) { R().remove(r.to, r.sub.id); location.hash = 'tab/flow'; }
+        return;
+      }
       case 'toggle': collapsed.has(bid) ? collapsed.delete(bid) : collapsed.add(bid); return done();
       case 'copy': case 'share': {
         const url = document.getElementById('shareUrl').value;

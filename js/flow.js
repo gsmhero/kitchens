@@ -15,6 +15,9 @@
   const requests = () => window.KitchensRequest.all()
     .filter(r => scope === 'all' || r.to === K().getUser().name);
 
+  const canDelete = () => window.KitchensRoles.level(K().getUser(), 'Flow') >= 2;
+  const confirmDelete = sub => confirm('Delete the request from "' + sub.from.name + '" for good?\nThis cannot be undone. Use it for spam or tests; finished work belongs in the Archive.');
+
   const requestCard = ({ to, sub }, i, last) => `
     <div class="ticket req-ticket">
       <div><span class="pill ok">Request</span> <b>${esc(sub.from.name)}</b></div>
@@ -24,6 +27,7 @@
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="Previous stage">←</button>
         <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="1" ${i === last ? 'disabled' : ''} title="Next stage">→</button>
         <button class="btn small" data-fl="archive" data-to="${esc(to)}" data-id="${sub.id}" title="Move to the Archive tab">📦 Archive</button>
+        ${canDelete() ? `<button class="btn small danger" data-fl="delete" data-to="${esc(to)}" data-id="${sub.id}" title="Delete this request for good (spam or a test)">🗑 Delete</button>` : ''}
       </div>
     </div>`;
 
@@ -62,6 +66,11 @@
       const next = Math.min(stages.length - 1, Math.max(0, K().stageIndex(cur.sub.stage) + (+el.dataset.dir)));
       window.KitchensRequest.setStage(to, id, stages[next].id);
       K().render();
+    }
+    if (el.dataset.fl === 'delete') {
+      const cur = window.KitchensRequest.all().find(r => r.to === el.dataset.to && r.sub.id === el.dataset.id);
+      if (cur && canDelete() && confirmDelete(cur.sub)) { window.KitchensRequest.remove(cur.to, cur.sub.id); K().render(); }
+      return;
     }
     if (el.dataset.fl === 'archive') {
       window.KitchensRequest.setStage(el.dataset.to, el.dataset.id, K().archiveStageId(), Date.now());
