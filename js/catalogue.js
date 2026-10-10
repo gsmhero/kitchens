@@ -86,6 +86,7 @@
         <td><span class="pill ${p.published ? 'ok' : ''}">${p.published ? 'Published' : 'Draft'}</span></td>
         <td class="row-actions">
           <button class="btn small" data-pc="edit" data-id="${p.id}">Edit</button>
+          <button class="btn small" data-pc="clone" data-id="${p.id}" title="Make a copy of this product">Clone</button>
           <button class="btn small" data-pc="toggle" data-id="${p.id}">${p.published ? 'Unpublish' : 'Publish'}</button>
           <button class="link danger-t" data-pc="del" data-id="${p.id}">delete</button></td></tr>`).join('') || `<tr><td colspan="6" class="sub">${db.products.length ? 'No products match.' : 'No products yet.'}</td></tr>`}
       </tbody></table>`;
@@ -277,6 +278,11 @@
       case 'tab': tab = d.v; redraw(); break;
       case 'add': productDialog(null); break;
       case 'edit': productDialog(p); break;
+      case 'clone': { // a copy (as a draft, not published) opens in the editor; photos and field values are copied
+        const c = JSON.parse(JSON.stringify(p));
+        c.id = uid(); c.name = c.name + ' (copy)'; c.published = false; c.at = Date.now();
+        db.products.push(c); persist(); redraw(); productDialog(c); break;
+      }
       case 'toggle': p.published = !p.published; persist(); redraw(); break;
       case 'del': if (confirm(`Delete product "${p.name}"?`)) { db.products = db.products.filter(x => x !== p); persist(); redraw(); } break;
       case 'add-type': typeDialog(null); break;

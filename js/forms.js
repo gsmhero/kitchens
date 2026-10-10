@@ -116,6 +116,7 @@
             <button class="btn small primary" data-fm="fill" data-id="${x.id}">Fill in</button>
             <button class="btn small" data-fm="subs" data-id="${x.id}">Submissions</button>
             <button class="btn small" data-fm="edit" data-id="${x.id}">Edit</button>
+            <button class="btn small" data-fm="clone" data-id="${x.id}" title="Make a copy of this form">Clone</button>
             <button class="btn small danger" data-fm="del" data-id="${x.id}">Delete</button>
           </div>
         </div>`).join('') || '<div class="placeholder">No forms yet. Click “New form”.</div>'}
@@ -224,6 +225,11 @@
         break;
       }
       case 'edit': draft = JSON.parse(JSON.stringify(forms.find(v => v.id === id))); go('build'); break;
+      case 'clone': { // the copy opens in the editor and is saved with "Save form"
+        draft = JSON.parse(JSON.stringify(forms.find(v => v.id === id)));
+        draft.id = uid(); draft.name = draft.name + ' (copy)'; draft.fields.forEach(fl => { fl.id = uid(); });
+        go('build'); break;
+      }
       case 'edit-req': draft = requestDraft(); go('build', REQ); break;
       case 'reset-req':
         if (confirm('Reset your Request form to the default Client brief?')) { window.KitchensRequest.resetForm(me().name); redraw(); }
