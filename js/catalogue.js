@@ -32,7 +32,7 @@
       return db.products.map(p => {
         const t = db.types.find(x => x.id === p.typeId);
         return { id: p.id, name: p.name, price: p.price, desc: p.desc, published: p.published, typeId: p.typeId, typeName: t ? t.name : '', author: p.author || '',
-          photo: p.photos[0] || '', specs: t ? fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]))
+          photo: p.photos[0] || '', specs: t ? fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]) && fl.type !== 'file')
             .map(fl => ({ label: fl.label, value: fl.type === 'checkbox' ? 'Yes' : String(p.values[fl.id]) })) : [] };
       });
     },
@@ -45,10 +45,10 @@
   const typeOf = id => db.types.find(t => t.id === id);
 
   /* ---------- helpers ---------- */
-  const shown = (fl, v) => fl.type === 'checkbox' ? (v ? 'Yes' : 'No') : (v === undefined || v === '' ? '—' : esc(v));
+  const shown = (fl, v) => fl.type === 'checkbox' ? (v ? 'Yes' : 'No') : fl.type === 'file' ? FF().filesHtml(v) : (v === undefined || v === '' ? '—' : esc(v));
   const specs = (p, n) => { // list of filled spec fields of a product (n = max count)
     const t = typeOf(p.typeId); if (!t) return [];
-    const out = fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]));
+    const out = fieldsOf(t).filter(fl => p.values[fl.id] !== undefined && p.values[fl.id] !== '' && !(fl.type === 'checkbox' && !p.values[fl.id]) && (fl.type !== 'file' || !n));
     return n ? out.slice(0, n) : out;
   };
   const thumb = p => p.photos.length ? `<img src="${p.photos[0]}" alt="">` : '<div class="no-photo"></div>';
@@ -59,6 +59,7 @@
       case 'textarea': return `<textarea ${n} ${r} rows="3">${esc(v)}</textarea>`;
       case 'select': return `<select ${n} ${r}><option value="">— choose —</option>${(fl.options || '').split(',').map(o => o.trim()).filter(Boolean).map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
       case 'checkbox': return `<input type="checkbox" ${n} ${v ? 'checked' : ''}>`;
+      case 'file': return FF().uploaderHtml('f_' + fl.id, v);
       default: return `<input type="${fl.type}" ${n} ${r} value="${esc(v)}" ${fl.type === 'number' ? 'step="any"' : ''}>`;
     }
   }

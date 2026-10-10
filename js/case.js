@@ -221,7 +221,7 @@
 
     <section class="cblock">
       <header><h3>Request</h3><button class="chev" data-cs="toggle" data-bid="req">${reqOpen ? '▲' : '▼'}</button></header>
-      ${reqOpen ? `<div class="cb-body"><dl class="answers">${sub.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${fl.type === 'checkbox' ? (sub.values[fl.id] ? 'Yes' : 'No') : (esc(sub.values[fl.id]) || '—')}</dd>`).join('')}</dl></div>` : ''}
+      ${reqOpen ? `<div class="cb-body"><dl class="answers">${sub.fields.map(fl => `<dt>${esc(fl.label)}</dt><dd>${fl.type === 'checkbox' ? (sub.values[fl.id] ? 'Yes' : 'No') : fl.type === 'file' ? window.KitchensForms.filesHtml(sub.values[fl.id]) : (esc(sub.values[fl.id]) || '—')}</dd>`).join('')}</dl></div>` : ''}
     </section>
     ${c.blocks.map((b, i) => blockCard(b, c, i, client)).join('')}
     ${!c.blocks.length ? `<p class="sub">${client ? 'Nothing here yet.' : 'No blocks yet. Use “Add new block” above.'}</p>` : ''}`;

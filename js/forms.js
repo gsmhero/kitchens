@@ -4,7 +4,7 @@
 
   window.KitchensPages = window.KitchensPages || {};
 
-  const TYPES = { text: 'Text', textarea: 'Long text', number: 'Number', date: 'Date', select: 'Dropdown', checkbox: 'Checkbox' };
+  const TYPES = { text: 'Text', textarea: 'Long text', number: 'Number', date: 'Date', select: 'Dropdown', checkbox: 'Checkbox', file: 'Uploader (images, documents)' };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -30,7 +30,7 @@
 
   /* shared helpers for other pages (e.g. Request) */
   window.KitchensForms = {
-    TYPES, esc, uid, f, inputFor: (...a) => inputFor(...a),
+    TYPES, esc, uid, f, inputFor: (...a) => inputFor(...a), uploaderHtml: (...a) => uploaderHtml(...a), filesHtml: v => filesHtml(v),
     // forms as plain data for other pages (e.g. product types use a form as their list of fields)
     list: () => { init(); return JSON.parse(JSON.stringify(forms)); },
     create: x => { init(); const form = { id: uid(), name: x.name, desc: x.desc || '', roles: [], fields: x.fields }; forms.push(form); persist(); return form.id; },
@@ -123,12 +123,38 @@
     </div>`;
   }
 
+  /* ---------- Uploader field: images and documents ----------
+     The value of an uploader field is a JSON list [{ name, size, type, data }] (data = the file as a data: URL).
+     A hidden input carries it, so every form (Forms, Request, Catalogue) reads it like any other field. */
+  const UP_MAX_FILES = 8, UP_MAX_DOC = 600 * 1024, UP_MAX_TOTAL = 3 * 1024 * 1024;
+  const upParse = v => { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a.filter(x => x && typeof x.data === 'string' && /^data:[\w.+\-\/]+;base64,/.test(x.data)) : []; } catch (e) { return []; } };
+  const upIsImg = x => /^data:image\//.test(x.data);
+  const upSize = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB';
+  // how the files look when a form is displayed (answers, submissions, product cards)
+  const filesHtml = v => {
+    const a = upParse(v);
+    if (!a.length) return '—';
+    return `<span class="up-items">${a.map(x => upIsImg(x)
+      ? `<button type="button" class="up-thumb" data-upview title="${esc(x.name)}"><img src="${x.data}" alt="${esc(x.name)}"></button>`
+      : `<a class="up-doc" href="${x.data}" download="${esc(x.name)}">📄 <span>${esc(x.name)}</span> <small>${upSize(x.size || 0)}</small></a>`).join('')}</span>`;
+  };
+  const upItems = a => a.map((x, i) => `<span class="up-item">${upIsImg(x)
+    ? `<button type="button" class="up-thumb" data-upview title="${esc(x.name)}"><img src="${x.data}" alt="${esc(x.name)}"></button>`
+    : `<span class="up-doc">📄 <span>${esc(x.name)}</span> <small>${upSize(x.size || 0)}</small></span>`}<button type="button" class="x" data-up-rm="${i}" title="Remove">×</button></span>`).join('');
+  const uploaderHtml = (name, v) => `<div class="uploader" data-up>
+      <input type="hidden" name="${esc(name)}" value="${esc(v || '')}">
+      <div class="up-list">${upItems(upParse(v))}</div>
+      <button type="button" class="btn small" data-up-pick>+ Add images or documents</button>
+      <input type="file" multiple hidden data-up-file accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip">
+    </div>`;
+
   function inputFor(fl) {
     const n = `name="${fl.id}"`, r = fl.required ? 'required' : '';
     switch (fl.type) {
       case 'textarea': return `<textarea ${n} ${r} rows="3"></textarea>`;
       case 'select': return `<select ${n} ${r}><option value="">— choose —</option>${fl.options.split(',').map(o => o.trim()).filter(Boolean).map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
       case 'checkbox': return `<input type="checkbox" ${n} ${r}>`;
+      case 'file': return uploaderHtml(fl.id, '');
       default: return `<input type="${fl.type}" ${n} ${r}>`;
     }
   }
@@ -147,7 +173,7 @@
   function subsView() {
     const x = forms.find(v => v.id === view.id);
     const rows = subs.filter(s => s.formId === x.id).sort((a, b) => b.at - a.at);
-    const show = (fl, v) => fl.type === 'checkbox' ? (v ? '✔' : '—') : esc(v);
+    const show = (fl, v) => fl.type === 'checkbox' ? (v ? '✔' : '—') : fl.type === 'file' ? filesHtml(v) : esc(v);
     return `
     <button class="link back" data-fm="list">← All forms</button>
     <div class="section-head"><h1>${esc(x.name)} — submissions</h1>
@@ -304,5 +330,41 @@
     });
     subs.push({ id: uid(), formId: x.id, at: Date.now(), values });
     persist(); go('subs', x.id);
+  });
+
+  /* ---------- Uploader events ---------- */
+  const upBox = el => el.closest('[data-up]');
+  const upField = box => box.querySelector('input[type=hidden]');
+  const upSet = (box, a) => { upField(box).value = JSON.stringify(a); box.querySelector('.up-list').innerHTML = upItems(a); };
+  const readData = file => new Promise(res => { const fr = new FileReader(); fr.onerror = () => res(null); fr.onload = () => res(fr.result); fr.readAsDataURL(file); });
+  document.addEventListener('click', e => {
+    const pick = e.target.closest('[data-up-pick]');
+    if (pick) { upBox(pick).querySelector('[data-up-file]').click(); return; }
+    const rm = e.target.closest('[data-up-rm]');
+    if (rm) { const box = upBox(rm), a = upParse(upField(box).value); a.splice(+rm.dataset.upRm, 1); upSet(box, a); return; }
+    const view = e.target.closest('[data-upview]');
+    if (view && view.querySelector('img')) { // a picture, full size
+      let m = document.getElementById('upModal');
+      if (!m) { m = document.createElement('div'); m.className = 'modal'; m.id = 'upModal'; document.body.appendChild(m); }
+      m.innerHTML = `<div class="modal-card lightbox"><button type="button" class="close" data-close>×</button><img src="${view.querySelector('img').src}" alt=""></div>`;
+      m.hidden = false;
+    }
+  });
+  document.addEventListener('change', async e => {
+    const inp = e.target.closest && e.target.closest('[data-up-file]');
+    if (!inp) return;
+    const box = upBox(inp), a = upParse(upField(box).value), files = [...inp.files], skipped = [];
+    inp.value = '';
+    for (const file of files) {
+      if (a.length >= UP_MAX_FILES) { skipped.push(file.name + ' (at most ' + UP_MAX_FILES + ' files)'); continue; }
+      if (/^image\//.test(file.type)) {
+        const data = await window.KitchensBlocks.readImage(file, 1400, 0.72);
+        if (data) a.push({ name: file.name.replace(/\.\w+$/, '') + '.jpg', size: Math.round(data.length * 0.75), type: 'image/jpeg', data }); else skipped.push(file.name);
+      } else if (file.size > UP_MAX_DOC) skipped.push(file.name + ' (over ' + upSize(UP_MAX_DOC) + ')');
+      else { const data = await readData(file); if (data) a.push({ name: file.name, size: file.size, type: file.type, data }); else skipped.push(file.name); }
+    }
+    if (JSON.stringify(a).length > UP_MAX_TOTAL) { alert('There is too much data in this field. Remove some files or use smaller ones.'); return; }
+    upSet(box, a);
+    if (skipped.length) alert('Not added: ' + skipped.join(', '));
   });
 })();

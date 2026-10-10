@@ -67,7 +67,7 @@
   window.addEventListener('hashchange', () => { sent = ''; });
 
   const fmtDate = t => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
-  const val = (fl, v) => fl.type === 'checkbox' ? (v ? 'Yes' : 'No') : (esc(v) || '—');
+  const val = (fl, v) => fl.type === 'checkbox' ? (v ? 'Yes' : 'No') : fl.type === 'file' ? FF().filesHtml(v) : (esc(v) || '—');
   const fieldRow = fl => `<label class="${fl.type === 'checkbox' ? 'inline' : ''}"><span>${esc(fl.label)}${fl.required ? ' <b class="req">*</b>' : ''}</span>${FF().inputFor(fl)}</label>`;
 
   /* ---------- Sending a request ---------- */
