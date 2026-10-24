@@ -244,6 +244,15 @@ function kv_write(string $key, ?string $baseJson, ?string $mineJson, ?array $u):
     return ['rev' => $rev, 'v' => $view === null ? null : kv_encode($view)];
 }
 
+// ids of the offers a request page refers to (a Price offer block: offerId, an Offer block: offerIds)
+function collect_offer_ids($x, array &$ids): void {
+    if (!is_array($x)) return;
+    foreach ($x as $k => $v) {
+        if ($k === 'offerId' && is_scalar($v) && $v) $ids[] = (string) $v;
+        elseif ($k === 'offerIds' && is_array($v)) { foreach ($v as $i) if (is_scalar($i) && $i) $ids[] = (string) $i; }
+        elseif (is_array($v)) collect_offer_ids($v, $ids);
+    }
+}
 /* ---------- a client opens the link of its own request (#share/<id>) ---------- */
 function kv_share(string $id): ?array {
     if ($id === '' || !preg_match('/^[A-Za-z0-9_\-]{3,60}$/', $id)) return null;
@@ -253,10 +262,10 @@ function kv_share(string $id): ?array {
         foreach ($subs as $s) {
             if ((string) $s['id'] !== $id) continue;
             $offerIds = [];
-            array_walk_recursive($s, function ($v, $k) use (&$offerIds) { if ($k === 'offerId' && $v) $offerIds[] = (string) $v; });
+            collect_offer_ids($s, $offerIds);
             $offers = [];
             $row = kv_row('offers'); $all = $row ? kv_decode($row['v']) : null;
-            if (is_array($all) && has_ids($all['offers'] ?? [])) foreach ($all['offers'] as $o) if (in_array((string) $o['id'], $offerIds, true)) $offers[] = $o;
+            if (is_array($all) && has_ids($all['offers'] ?? [])) foreach ($all['offers'] as $o) if (in_array((string) $o['id'], $offerIds, true) && ($o['status'] ?? '') !== 'draft') $offers[] = $o; // a draft is not shown to the client
             return ['key' => $r['k'], 'sub' => $s, 'offers' => $offers];
         }
     }

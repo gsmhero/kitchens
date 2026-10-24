@@ -728,3 +728,8 @@ fieldset.spec #pcFields input:not([type=checkbox]):not([type=file]),fieldset.spe
 fieldset.spec #pcFields label.inline{display:flex;align-items:center;gap:8px}
 fieldset.spec #pcFields label.inline{flex-direction:row-reverse;justify-content:flex-end;align-self:center}
 fieldset.spec #pcFields label.inline input{flex:none;width:auto}
+
+/* Price offers attached to an Offer block */
+.o-attached{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.o-attached h4{margin:0 0 8px}
+.offer-mini{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--bg)}

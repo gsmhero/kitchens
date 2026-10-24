@@ -131,6 +131,42 @@
       ${o.notes ? `<p class="po-notes">${esc(o.notes).replace(/\n/g, '<br>')}</p>` : ''}`;
   }
 
+  // Price offers attached to an "Offer" block: chosen from the Price offers tab (those assigned to this client are listed first)
+  function attachedOffers(b, ro) {
+    const O = window.KitchensOffers, money = n => K().fmt(n) + ' ₽';
+    const all = O.list(), ids = b.offerIds || [], r = find(ctx.id), who = r ? String(r.sub.from.name || '').trim().toLowerCase() : '';
+    let attached = ids.map(id => O.get(id)).filter(Boolean);
+    if (ro) attached = attached.filter(o => o.status !== 'draft'); // the client sees an offer only after it was sent
+    const cards = attached.map(o => `
+      <div class="offer-mini">
+        <div class="offer-head"><b>${esc(o.no)}</b> <span class="pill ${o.statusClass}">${esc(o.statusLabel)}</span>
+          <span class="sub">Valid until ${fmtD(o.validUntil)}${ro ? '' : ' · ' + esc(o.clientName)}</span>
+          ${ro ? '' : `<span class="offer-actions">
+            <button class="btn small" data-cs="offer-open" data-oid="${o.id}">Open offer</button>
+            <button class="btn small" data-cs="offer-doc" data-oid="${o.id}">Preview / print</button>
+            <button class="link danger-t" data-cs="offer-detach" data-bid="${b.id}" data-oid="${o.id}">remove</button></span>`}
+        </div>
+        <div class="matrix-wrap"><table class="po-lines"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr></thead><tbody>
+          ${o.items.map(it => `<tr><td><b>${esc(it.name)}</b></td><td class="num">${esc(it.qty)}</td><td class="num">${money(it.price)}</td>X
+        </tbody><tfoot><tr><th colspan="3">Total</th><th class="num">${money(o.total)}</th></tr></tfoot></table></div>
+      </div>`).join('');
+    if (ro) return cards ? `<div class="o-attached"><h4>Price offers</h4>${cards}</div>` : '';
+    const free = all.filter(x => !ids.includes(x.id));
+    const mine = free.filter(x => x.requestId === ctx.id || (who && String(x.clientName || '').trim().toLowerCase() === who)), other = free.filter(x => !mine.includes(x));
+    const opt = x => `<option value="${x.id}">${esc(x.no)} — ${esc(x.clientName)} — ${money(x.total)} — ${esc(x.statusLabel)}</option>`;
+    return `<div class="o-attached"><h4>Price offers for this client</h4>
+      ${cards || '<p class="sub">No price offer is attached yet.</p>'}
+      <div class="row">
+        <label class="grow">Attach an offer from Price offers
+          <select data-in="addoffer" data-bid="${b.id}">
+            <option value="">— choose offer —</option>
+            ${mine.length ? `<optgroup label="Assigned to this client">${mine.map(opt).join('')}</optgroup>` : ''}
+            ${other.length ? `<optgroup label="${mine.length ? 'Other offers' : 'All offers'}">${other.map(opt).join('')}</optgroup>` : ''}
+          </select></label>
+        <button class="btn dark push" data-cs="new-offer" data-bid="${b.id}">+ Create offer for this client</button>
+      </div></div>`;
+  }
+
   function blockBody(b, ro, staff) {
     const lock = ro || b.locked;
     switch (b.type) {
@@ -157,7 +193,8 @@
             <label>Cost <input type="number" min="0" data-in="bk" data-k="cost" data-bid="${b.id}" value="${esc(b.cost)}" ${disabled(lock)}> RUB</label>
             <label>Qty <input type="number" min="0" data-in="bk" data-k="days" data-bid="${b.id}" value="${esc(b.days)}" ${disabled(lock)}> DAYS</label>
             ${ro ? '' : `<button class="btn dark push" data-cs="lock" data-bid="${b.id}">${b.locked ? 'Edit' : 'Save'}</button>`}
-          </div>`;
+          </div>
+          ${attachedOffers(b, ro)}`;
       case 'price': {
         if (!b.items) return offerBody(b, ro); // linked offer from the Price offers list
         const total = b.items.reduce((a, r) => a + (+r.qty || 0) * (+r.price || 0), 0);
@@ -331,9 +368,10 @@
       case 'new-offer': { // create an offer for this client, linked to this request, and attach it
         const sub = find(ctx.id).sub;
         const oid = window.KitchensOffers.create({ clientName: sub.from.name, contact: sub.from.contact, requestId: ctx.id });
-        mutate(c => { block(c, bid).offerId = oid; });
+        mutate(c => { const b = block(c, bid); if (b.type === 'offer') (b.offerIds = b.offerIds || []).push(oid); else b.offerId = oid; });
         return done();
       }
+      case 'offer-detach': mutate(c => { const b = block(c, bid); b.offerIds = (b.offerIds || []).filter(x => x !== d.oid); }); return done();
       case 'offer-open': window.KitchensOffers.openEditor(d.oid); return;
       case 'offer-doc': window.KitchensOffers.openDoc(d.oid); return;
       case 'offer-unlink': mutate(c => { block(c, bid).offerId = ''; }); return done();
@@ -366,6 +404,7 @@
           window.KitchensNotify.push(t.value, { type: 'measure', title: 'Measure assigned to you', text: `${r ? r.sub.from.name : 'Client'}${b && b.date ? ' · ' + b.date : ''}`, link: '#tab/agents' });
         }
         break;
+      case 'addoffer': if (t.value) { mutate(c => { const b = block(c, d.bid); b.offerIds = b.offerIds || []; if (!b.offerIds.includes(t.value)) b.offerIds.push(t.value); }); redraw(); } break;
       case 'mf': mutate(c => { block(c, d.bid).measures.find(m => m.id === d.mid).fields.find(f => f.id === d.fid).value = t.value; }); break;
       case 'pr': mutate(c => { block(c, d.bid).items[+d.k][d.pk] = t.value; }); redraw(); break;
       case 'cm-files': {
