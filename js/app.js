@@ -12,8 +12,15 @@
 
   /* ---------- Registered-user tabs (from wireframe) ---------- */
   const TABS = [
-    'Dashboard', 'Flow', 'Archive', 'Stages', 'Forms', 'Branches and Roles', 'Staff', 'Knowledge',
-    'Warehouse', 'Product Catalogue', 'About Us', 'Blog', 'Price offers', 'Costs', 'ToDo', 'Agents', 'Admin'
+    'Dashboard', 'Flow', 'Product Catalogue', 'Price offers', 'ToDo', 'About Us', 'Archive', 'Knowledge', 'Blog', 'Agents', 'Warehouse',
+    'Costs', 'Forms', 'Stages', 'Staff', 'Branches and Roles', 'Admin'
+  ];
+  // the menu: single tabs and two drop-down groups. "Accounting" is announced but not built yet (shown greyed out).
+  const MENU = [
+    'Dashboard', 'Flow', 'Product Catalogue', 'Price offers', 'ToDo', 'About Us', 'Archive', 'Knowledge', 'Blog', 'Agents', 'Warehouse',
+    { group: 'Finance', items: [{ soon: 'Accounting' }, 'Costs'] },
+    { group: 'Options', items: ['Forms', 'Stages', 'Staff', 'Branches and Roles'] },
+    'Admin'
   ];
   const slug = t => t.toLowerCase().replace(/\s+/g, '-');
 
@@ -144,14 +151,46 @@
       console.error(err);
       view.innerHTML = '<div class="placeholder">This page failed to load: ' + String(err.message).replace(/[<>&]/g, '') + '</div>';
     }
+    markTabs();
     renderNotifs();
   }
 
-  function renderTabs() {
-    const shown = user ? TABS.filter(t => RR().canTab(user, t)) : [];
-    $('#tabsRow').innerHTML = shown.map(t => `<button role="tab" data-tab="${t}">${t}</button>`).join('');
+  // highlight the current tab (a group is highlighted when the current page is inside it); also called after every page render
+  function markTabs() {
     const cur = decodeURIComponent(location.hash.slice(1));
-    $$('#tabsRow button').forEach(b => b.classList.toggle('active', cur === 'tab/' + slug(b.dataset.tab) || (cur.startsWith('case/') && b.dataset.tab === 'Flow')));
+    const isCur = t => cur === 'tab/' + slug(t) || (cur.startsWith('case/') && t === 'Flow');
+    $$('#tabsRow button[data-tab]').forEach(b => b.classList.toggle('active', isCur(b.dataset.tab)));
+    $$('#tabsRow .tab-group').forEach(b => { const g = MENU.find(m => m.group === b.dataset.group); b.classList.toggle('active', g.items.some(i => typeof i === 'string' && isCur(i))); });
+  }
+  function renderTabs() {
+    closeTabMenu();
+    const can = t => RR().canTab(user, t);
+    const cur = decodeURIComponent(location.hash.slice(1));
+    const isCur = t => cur === 'tab/' + slug(t) || (cur.startsWith('case/') && t === 'Flow');
+    const html = !user ? '' : MENU.map(m => {
+      if (typeof m === 'string') return can(m) ? `<button role="tab" data-tab="${m}" class="${isCur(m) ? 'active' : ''}">${m}</button>` : '';
+      const real = m.items.filter(i => typeof i === 'string' && can(i));
+      if (!real.length) return ''; // a group shows only when the person may open something in it
+      return `<button role="tab" class="tab-group ${real.some(isCur) ? 'active' : ''}" data-group="${m.group}" aria-haspopup="true" aria-expanded="false">${m.group} <span class="caret">▾</span></button>`;
+    }).join('');
+    $('#tabsRow').innerHTML = html;
+    markTabs();
+  }
+  // drop-down of a group: one floating panel placed under the button (the tabs row scrolls, so the panel cannot live inside it)
+  function closeTabMenu() { const m = $('#tabMenu'); if (m) m.remove(); $$('#tabsRow .tab-group').forEach(b => b.setAttribute('aria-expanded', 'false')); }
+  function openTabMenu(btn) {
+    const was = btn.getAttribute('aria-expanded') === 'true';
+    closeTabMenu();
+    if (was) return;
+    const g = MENU.find(m => m.group === btn.dataset.group), cur = decodeURIComponent(location.hash.slice(1));
+    const m = document.createElement('div'); m.id = 'tabMenu'; m.className = 'tab-menu'; m.setAttribute('role', 'menu');
+    m.innerHTML = g.items.map(i => typeof i === 'string'
+      ? (RR().canTab(user, i) ? `<button role="menuitem" data-tab="${i}" class="${cur === 'tab/' + slug(i) ? 'active' : ''}">${i}</button>` : '')
+      : `<span class="soon" role="menuitem" aria-disabled="true">${i.soon} <small>Coming soon</small></span>`).join('');
+    document.body.appendChild(m);
+    const r = btn.getBoundingClientRect();
+    m.style.left = Math.min(r.left, window.innerWidth - m.offsetWidth - 8) + 'px'; m.style.top = r.bottom + 'px';
+    btn.setAttribute('aria-expanded', 'true');
   }
 
   // the bell and the message badge are drawn by js/notify.js
@@ -187,7 +226,10 @@
     if (open) { closeModals(); $('#' + open.dataset.open).hidden = false; return; }
     if (e.target.matches('[data-close]') || e.target.classList.contains('modal')) closeModals();
 
-    const tab = e.target.closest('#tabsRow button');
+    const grp = e.target.closest('#tabsRow .tab-group');
+    if (grp) { openTabMenu(grp); return; }
+    if (!e.target.closest('#tabMenu')) closeTabMenu(); // a click elsewhere closes the open group
+    const tab = e.target.closest('#tabsRow button[data-tab], #tabMenu button[data-tab]');
     if (tab) { location.hash = 'tab/' + slug(tab.dataset.tab); return; }
   });
 
@@ -209,7 +251,8 @@
     catch (ex) { err.textContent = ex.message; }
     busy(e.target, false);
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModals(); closeTabMenu(); } });
+  window.addEventListener('resize', closeTabMenu);
   window.addEventListener('hashchange', render);
 
   window.Kitchens = {

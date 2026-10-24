@@ -18,16 +18,28 @@
   const canDelete = () => window.KitchensRoles.level(K().getUser(), 'Flow') >= 2;
   const confirmDelete = sub => confirm('Delete the request from "' + sub.from.name + '" for good?\nThis cannot be undone. Use it for spam or tests; finished work belongs in the Archive.');
 
+  // icons (inline SVG, they take the colour of the button)
+  const ICON = {
+    prev: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    next: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+    archive: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>'
+  };
+  // card: stage label, name, date, recipient, a wide "Open" button, and a row of icon buttons: ‹ previous stage · archive · delete · next stage ›
   const requestCard = ({ to, sub }, i, last) => `
     <div class="ticket req-ticket">
-      <div><span class="pill ok">Request</span> <b>${esc(sub.from.name)}</b></div>
-      <small>${esc(sub.from.contact)} · to ${esc(to)} · ${fmtDate(sub.at)}</small>
-      <a class="link" href="#case/${sub.id}">Open</a>
-      <div class="tk-actions">
-        <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="Previous stage">←</button>
-        <button class="btn small" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="1" ${i === last ? 'disabled' : ''} title="Next stage">→</button>
-        <button class="btn small" data-fl="archive" data-to="${esc(to)}" data-id="${sub.id}" title="Move to the Archive tab">📦 Archive</button>
-        ${canDelete() ? `<button class="btn small danger" data-fl="delete" data-to="${esc(to)}" data-id="${sub.id}" title="Delete this request for good (spam or a test)">🗑 Delete</button>` : ''}
+      <span class="pill ok rt-pill">Request</span>
+      <b class="rt-name" title="${esc(sub.from.contact)}">${esc(sub.from.name)}</b>
+      <small class="rt-date">${fmtDate(sub.at)}</small>
+      <small class="rt-to">to ${esc(to)}</small>
+      <a class="btn primary rt-open" href="#case/${sub.id}">Open</a>
+      <div class="rt-actions">
+        <button class="ib" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="Previous stage" aria-label="Previous stage">${ICON.prev}</button>
+        <span class="rt-mid">
+          <button class="ib" data-fl="archive" data-to="${esc(to)}" data-id="${sub.id}" title="Move to the Archive tab" aria-label="Archive">${ICON.archive}</button>
+          ${canDelete() ? `<button class="ib danger" data-fl="delete" data-to="${esc(to)}" data-id="${sub.id}" title="Delete this request for good (spam or a test)" aria-label="Delete">${ICON.trash}</button>` : ''}
+        </span>
+        <button class="ib" data-fl="move" data-to="${esc(to)}" data-id="${sub.id}" data-dir="1" ${i === last ? 'disabled' : ''} title="Next stage" aria-label="Next stage">${ICON.next}</button>
       </div>
     </div>`;
 
