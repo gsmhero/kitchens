@@ -147,7 +147,7 @@
             <button class="link danger-t" data-cs="offer-detach" data-bid="${b.id}" data-oid="${o.id}">remove</button></span>`}
         </div>
         <div class="matrix-wrap"><table class="po-lines"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr></thead><tbody>
-          ${o.items.map(it => `<tr><td><b>${esc(it.name)}</b></td><td class="num">${esc(it.qty)}</td><td class="num">${money(it.price)}</td>X
+          ${o.items.map(it => `<tr><td><b>${esc(it.name)}</b></td><td class="num">${esc(it.qty)}</td><td class="num">${money(it.price)}</td><td class="num">${money(it.lt)}</td></tr>`).join('')}
         </tbody><tfoot><tr><th colspan="3">Total</th><th class="num">${money(o.total)}</th></tr></tfoot></table></div>
       </div>`).join('');
     if (ro) return cards ? `<div class="o-attached"><h4>Price offers</h4>${cards}</div>` : '';
