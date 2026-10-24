@@ -24,18 +24,27 @@
 
   const seed = () => ({ types: [], products: [] });
   // The default cabinets (js/catalogue-defaults.js) are added ONCE to the shared catalogue by the first person who may edit it.
+  // They go into the types "Нижние ящики" / "Верхние ящики": existing types with these names are used, otherwise they are created.
   // From then on they are ordinary products: everything can be edited or deleted, and deleted items do not come back.
   const canEdit = () => window.KitchensRoles.level(K().getUser(), 'Product Catalogue') >= 2;
   function applyDefaults() {
     const D = window.KitchensCatalogueDefaults;
     if (!D || !db || (db.seeded || []).includes(D.version) || !canEdit()) return;
-    let formId = '';
-    try { // the form of the fields (needs the right to edit forms; without it the types keep their own copy of the fields)
-      if (window.KitchensRoles.level(K().getUser(), 'Forms') >= 2) { const ex = FF().list().find(f => f.name === D.form.name); formId = ex ? ex.id : FF().create(D.form); }
-    } catch (e) { formId = ''; }
-    D.types.forEach(t => { if (!db.types.some(x => x.id === t.id)) db.types.push({ ...t, formId, snapshot: JSON.parse(JSON.stringify(D.form.fields)) }); });
+    const typeOf = {};
+    D.types.forEach(spec => {
+      let t = db.types.find(x => D.norm(x.name) === D.norm(spec.name));
+      if (!t) {
+        let formId = '';
+        try { // a form with the same fields, so the type can be edited in the Forms tab (needs the right to edit forms)
+          if (window.KitchensRoles.level(K().getUser(), 'Forms') >= 2) { const ex = FF().list().find(f => D.norm(f.name) === D.norm(spec.name)); formId = ex ? ex.id : FF().create({ name: spec.name, desc: spec.desc, fields: spec.fields }); }
+        } catch (e) { formId = ''; }
+        t = { id: uid(), name: spec.name, desc: spec.desc, formId, snapshot: JSON.parse(JSON.stringify(spec.fields)) };
+        db.types.push(t);
+      }
+      typeOf[spec.key] = t;
+    });
     const have = new Set(db.products.map(p => p.id));
-    D.products().forEach(p => { if (!have.has(p.id)) db.products.push(p); });
+    D.products(typeOf).forEach(p => { if (!have.has(p.id)) db.products.push(p); });
     db.seeded = [...(db.seeded || []), D.version];
     save('catalogue', db);
   }

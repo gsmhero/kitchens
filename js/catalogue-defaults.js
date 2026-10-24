@@ -1,110 +1,119 @@
 /* Default product catalogue: kitchen cabinets ("boxes") — 39 base cabinets and 25 wall cabinets, with their pictures (media/boxes).
    It is added ONCE to the shared catalogue by the first person who can edit it (js/catalogue.js, applyDefaults), so every
    present and future user finds it in Product Catalogue. Everything in it can be edited or deleted later; deleted items do not come back.
-   All products start UNPUBLISHED. Codes and sizes are those printed on the pictures (sizes: height × width × depth, mm). */
+   All products start UNPUBLISHED. Codes and sizes are those printed on the pictures (sizes: height × width × depth, mm).
+   The products go into the types "Нижние ящики" (base) and "Верхние ящики" (wall): existing types with these names are used
+   (values are matched by field name), otherwise the types are created with the fields below. */
 (function () {
   'use strict';
 
   const VERSION = 'boxes-v1';
 
-  // fields of the "Kitchen cabinet" form (fixed ids, so the products' values stay readable)
-  const fld = (id, label, type, required) => ({ id, label, type, required: !!required, options: '' });
-  const FIELDS = [
-    fld('kb-code', 'Code', 'text', true), fld('kb-w', 'Width, mm', 'number', true), fld('kb-h', 'Height, mm', 'number'), fld('kb-d', 'Depth, mm', 'number'),
-    fld('kb-doors', 'Doors', 'number'), fld('kb-drawers', 'Drawers', 'number'),
-    fld('kb-glass', 'Glass door', 'checkbox'), fld('kb-corner', 'Corner cabinet', 'checkbox'),
-    fld('kb-mat', 'Body material', 'text'), fld('kb-soft', 'Soft-close', 'checkbox')
-  ];
-  const FORM = { name: 'Kitchen cabinet', desc: 'Code, size and fittings of a kitchen cabinet (box).', fields: FIELDS };
+  const f = (id, label, type, required) => ({ id, label, type, required: !!required, options: '' });
+  const COMMON_START = [f('d-name', 'Название продукта', 'text', true), f('d-code', 'Код в системе', 'text'), f('d-h', 'Высота (мм)', 'number'), f('d-w', 'Ширина (мм)', 'number'), f('d-d', 'Глубина (мм)', 'number'),
+    f('d-body', 'Материал корпуса', 'text'), f('d-bodyq', 'Количество материала (м2)', 'number')];
+  const COMMON_END = [f('d-doors', 'Двери (шт)', 'number'), f('d-fn', 'Дверца-фасад: Название', 'text'), f('d-fc', 'Дверца-фасад: Код', 'text'), f('d-fcol', 'Дверца-фасад: Цвет', 'text'),
+    f('d-hn', 'Ручка: Название', 'text'), f('d-hc', 'Ручка: Код', 'text'), f('d-shelf', 'Полки (шт)', 'number'), f('d-fix', 'Крепёж', 'text'),
+    f('d-back', 'Задняя стенка', 'checkbox'), f('d-backm', 'Задняя стенка: Материал', 'text'), f('d-backa', 'Задняя стенка: Площадь (м2)', 'text')];
+  const TOPFIELDS = [...COMMON_START, ...COMMON_END];
+  const BASEFIELDS = [...COMMON_START, f('d-top', 'Материал столешни', 'text'), f('d-topq', 'Количество материала (м2)', 'text'), ...COMMON_END];
   const TYPES = [
-    { id: 'tp-base', name: 'Base cabinet', desc: 'Floor cabinets under the worktop (height 850 mm).' },
-    { id: 'tp-wall', name: 'Wall cabinet', desc: 'Cabinets on the wall above the worktop.' }
+    { key: 'b', name: 'Нижние ящики', desc: 'Нижние шкафы (высота 850 мм).', fields: BASEFIELDS },
+    { key: 'w', name: 'Верхние ящики', desc: 'Верхние (навесные) шкафы.', fields: TOPFIELDS }
   ];
 
-  // [file, type(b/w), code, width, height, depth, doors, drawers, flags, kind, note]
-  //   flags: g = glass door, c = corner
+  // [file, type, code, width, height, depth, doors, shape, text, note]
   const ROWS = [
-    ['bottom-01', 'b', 'ШН 300', 300, 850, 480, 1, 0, '', '1 door'],
-    ['bottom-02', 'b', 'ШН 400', 400, 850, 480, 1, 0, '', '1 door'],
-    ['bottom-03', 'b', 'ШН 500', 500, 850, 480, 1, 0, '', '1 door'],
-    ['bottom-04', 'b', 'ШН 600', 600, 850, 480, 2, 0, '', '2 doors'],
-    ['bottom-05', 'b', 'ШН 600м', 600, 850, 480, 1, 0, '', '1 wide door'],
-    ['bottom-06', 'b', 'ШН 800', 800, 850, 480, 2, 0, '', '2 doors'],
-    ['bottom-07', 'b', 'ШН 1000', 1000, 850, 480, 2, 0, '', '2 doors'],
-    ['bottom-08', 'b', 'ШН 1200', 1200, 850, 480, 2, 0, '', '2 doors'],
-    ['bottom-09', 'b', 'ШН1Я 300', 300, 850, 480, 1, 1, '', '1 drawer and a door'],
-    ['bottom-10', 'b', 'ШН1Я 400', 400, 850, 480, 1, 1, '', '1 drawer and a door'],
-    ['bottom-11', 'b', 'ШН1Я 500', 500, 850, 480, 1, 1, '', '1 drawer and a door'],
-    ['bottom-12', 'b', 'ШН1Я 600', 600, 850, 480, 2, 1, '', '1 drawer and 2 doors'],
-    ['bottom-13', 'b', 'ШН1Я 800', 800, 850, 480, 2, 1, '', '1 drawer and 2 doors'],
-    ['bottom-14', 'b', 'ШН1Я 1000R', 1000, 850, 480, 2, 1, '', '1 drawer and 2 doors, right-hand version'],
-    ['bottom-15', 'b', 'ШН1Я 1200L', 1200, 850, 480, 2, 1, '', '1 drawer and 2 doors, left-hand version'],
-    ['bottom-16', 'b', 'ШНУ 990 / ШНУ 1050', 990, 850, 480, 2, 0, 'c', 'corner base cabinet', 'Two versions: 850×990×480 and 850×1050×600 mm.'],
-    ['bottom-17', 'b', 'ШНУ 890 / ШНУ 850', 892, 850, 892, 1, 0, 'c', 'corner base cabinet', 'Two versions: 850×892×892 and 850×850×850 mm.'],
-    ['bottom-18', 'b', 'ШН2Я 300', 300, 850, 480, 0, 2, '', '2 drawers'],
-    ['bottom-19', 'b', 'ШН2Я 400', 400, 850, 480, 0, 2, '', '2 drawers'],
-    ['bottom-20', 'b', 'ШН2Я 500', 500, 850, 480, 0, 2, '', '2 drawers'],
-    ['bottom-21', 'b', 'ШН2Я 600', 600, 850, 480, 0, 2, '', '2 drawers'],
-    ['bottom-22', 'b', 'ШН2Я 800', 800, 850, 480, 0, 2, '', '2 drawers'],
-    ['bottom-23', 'b', 'ШНМ 500', 500, 850, 480, 1, 0, '', 'sink base, 1 door', 'Open frame for a sink.'],
-    ['bottom-24', 'b', 'ШНМ 600', 600, 850, 480, 2, 0, '', 'sink base, 2 doors', 'Open frame for a sink.'],
-    ['bottom-25', 'b', 'ШНМ 800', 800, 850, 480, 2, 0, '', 'sink base, 2 doors', 'Open frame for a sink.'],
-    ['bottom-26', 'b', 'ШНД 600', 600, 850, 480, 0, 1, '', 'oven base, 1 drawer', 'Niche for a built-in oven.'],
-    ['bottom-27', 'b', 'ШНБ 150', 150, 850, 480, 1, 0, '', 'narrow bottle cabinet'],
-    ['bottom-28', 'b', 'ШНТ 300 L/R', 300, 850, 560, 1, 0, '', 'end cabinet, left or right', 'Shaped end cabinet, depth 560 mm.'],
-    ['bottom-29', 'b', 'ШН3Я 300', 300, 850, 480, 0, 3, '', '3 drawers'],
-    ['bottom-30', 'b', 'ШН3Я 400', 400, 850, 480, 0, 3, '', '3 drawers'],
-    ['bottom-31', 'b', 'ШН3Я 500', 500, 850, 480, 0, 3, '', '3 drawers'],
-    ['bottom-32', 'b', 'ШН3Я 600', 600, 850, 480, 0, 3, '', '3 drawers'],
-    ['bottom-33', 'b', 'ШН3Я 800', 800, 850, 480, 0, 3, '', '3 drawers'],
-    ['bottom-34', 'b', 'ШН4Я 300', 300, 850, 480, 0, 4, '', '4 drawers'],
-    ['bottom-35', 'b', 'ШН4Я 400', 400, 850, 480, 0, 4, '', '4 drawers'],
-    ['bottom-36', 'b', 'ШН4Я 500', 500, 850, 480, 0, 4, '', '4 drawers'],
-    ['bottom-37', 'b', 'ШН4Я 600', 600, 850, 480, 0, 4, '', '4 drawers'],
-    ['bottom-38', 'b', 'ШН4Я 800', 800, 850, 480, 0, 4, '', '4 drawers'],
-    ['bottom-39', 'b', 'ШНПУ 300 L/R', 300, 850, 540, 0, 0, 'c', 'open corner shelf unit, left or right', 'Open shelves, depth 540 mm.'],
-    ['top-01', 'w', 'ШВГС 500', 500, 358, 320, 1, 0, 'g', 'horizontal cabinet with a glass lift-up door', 'Above the hood or tall units.'],
-    ['top-02', 'w', 'ШВГС 600', 600, 358, 320, 1, 0, 'g', 'horizontal cabinet with a glass lift-up door', 'Above the hood or tall units.'],
-    ['top-03', 'w', 'ШВГС 800', 800, 358, 320, 1, 0, 'g', 'horizontal cabinet with a glass lift-up door', 'Above the hood or tall units.'],
-    ['top-04', 'w', 'ШВГ 500', 500, 358, 320, 1, 0, '', 'horizontal cabinet with a lift-up door', 'Above the hood or tall units.'],
-    ['top-05', 'w', 'ШВГ 600', 600, 358, 320, 1, 0, '', 'horizontal cabinet with a lift-up door', 'Above the hood or tall units.'],
-    ['top-06', 'w', 'ШВГ 800', 800, 358, 320, 1, 0, '', 'horizontal cabinet with a lift-up door', 'Above the hood or tall units.'],
-    ['top-07', 'w', 'ШВБ 150', 150, 720, 300, 0, 0, '', 'narrow open shelf unit'],
-    ['top-08', 'w', 'ШВПУ 300', 300, 720, 300, 0, 0, 'c', 'open corner shelf unit'],
-    ['top-09', 'w', 'ШВТ 224', 224, 720, 320, 1, 0, '', 'end cabinet, 1 door'],
-    ['top-10', 'w', 'ШВУ 590 / ШВУ 550', 592, 720, 592, 1, 0, 'c', 'corner wall cabinet', 'Two versions: 720×592×592 and 720×550×550 mm.'],
-    ['top-11', 'w', 'ШВС 300', 300, 720, 320, 1, 0, 'g', '1 glass door'],
-    ['top-12', 'w', 'ШВС 400', 400, 720, 320, 1, 0, 'g', '1 glass door'],
-    ['top-13', 'w', 'ШВС 500', 500, 720, 320, 1, 0, 'g', '1 glass door'],
-    ['top-14', 'w', 'ШВС 600', 600, 720, 320, 2, 0, 'g', '2 glass doors'],
-    ['top-15', 'w', 'ШВС 800', 800, 720, 320, 2, 0, 'g', '2 glass doors'],
-    ['top-16', 'w', 'ШВС 1000', 1000, 720, 320, 2, 0, 'g', '2 glass doors'],
-    ['top-17', 'w', 'ШВУС 590 / ШВУС 550', 592, 720, 592, 1, 0, 'cg', 'corner wall cabinet with a glass door', 'Two versions: 720×592×592 and 720×550×550 mm.'],
-    ['top-18', 'w', 'ШВ 300', 300, 720, 320, 1, 0, '', '1 door'],
-    ['top-19', 'w', 'ШВ 400', 400, 720, 320, 1, 0, '', '1 door'],
-    ['top-20', 'w', 'ШВ 500', 500, 720, 320, 1, 0, '', '1 door'],
-    ['top-21', 'w', 'ШВ 600', 600, 720, 320, 2, 0, '', '2 doors'],
-    ['top-22', 'w', 'ШВ 600м', 600, 720, 320, 1, 0, '', '1 wide door'],
-    ['top-23', 'w', 'ШВ 800', 800, 720, 320, 2, 0, '', '2 doors'],
-    ['top-24', 'w', 'ШВ 1000', 1000, 720, 320, 2, 0, '', '2 doors'],
-    ['top-25', 'w', 'ШВ 1200', 1200, 720, 320, 2, 0, '', '2 doors']
+    ['bottom-01', 'b', 'ШН 300', 300, 850, 480, 1, '1 дверь'],
+    ['bottom-02', 'b', 'ШН 400', 400, 850, 480, 1, '1 дверь'],
+    ['bottom-03', 'b', 'ШН 500', 500, 850, 480, 1, '1 дверь'],
+    ['bottom-04', 'b', 'ШН 600', 600, 850, 480, 2, '2 двери'],
+    ['bottom-05', 'b', 'ШН 600м', 600, 850, 480, 1, '1 широкая дверь'],
+    ['bottom-06', 'b', 'ШН 800', 800, 850, 480, 2, '2 двери'],
+    ['bottom-07', 'b', 'ШН 1000', 1000, 850, 480, 2, '2 двери'],
+    ['bottom-08', 'b', 'ШН 1200', 1200, 850, 480, 2, '2 двери'],
+    ['bottom-09', 'b', 'ШН1Я 300', 300, 850, 480, 1, '1 ящик и дверь'],
+    ['bottom-10', 'b', 'ШН1Я 400', 400, 850, 480, 1, '1 ящик и дверь'],
+    ['bottom-11', 'b', 'ШН1Я 500', 500, 850, 480, 1, '1 ящик и дверь'],
+    ['bottom-12', 'b', 'ШН1Я 600', 600, 850, 480, 2, '1 ящик и 2 двери'],
+    ['bottom-13', 'b', 'ШН1Я 800', 800, 850, 480, 2, '1 ящик и 2 двери'],
+    ['bottom-14', 'b', 'ШН1Я 1000R', 1000, 850, 480, 2, '1 ящик и 2 двери, правое исполнение'],
+    ['bottom-15', 'b', 'ШН1Я 1200L', 1200, 850, 480, 2, '1 ящик и 2 двери, левое исполнение'],
+    ['bottom-16', 'b', 'ШНУ 990 / ШНУ 1050', 990, 850, 480, 2, 'угловой нижний шкаф', 'Два исполнения: 850×990×480 и 850×1050×600 мм.'],
+    ['bottom-17', 'b', 'ШНУ 890 / ШНУ 850', 892, 850, 892, 1, 'угловой нижний шкаф', 'Два исполнения: 850×892×892 и 850×850×850 мм.'],
+    ['bottom-18', 'b', 'ШН2Я 300', 300, 850, 480, 0, '2 ящика'],
+    ['bottom-19', 'b', 'ШН2Я 400', 400, 850, 480, 0, '2 ящика'],
+    ['bottom-20', 'b', 'ШН2Я 500', 500, 850, 480, 0, '2 ящика'],
+    ['bottom-21', 'b', 'ШН2Я 600', 600, 850, 480, 0, '2 ящика'],
+    ['bottom-22', 'b', 'ШН2Я 800', 800, 850, 480, 0, '2 ящика'],
+    ['bottom-23', 'b', 'ШНМ 500', 500, 850, 480, 1, 'шкаф под мойку, 1 дверь', 'Открытый каркас под мойку.'],
+    ['bottom-24', 'b', 'ШНМ 600', 600, 850, 480, 2, 'шкаф под мойку, 2 двери', 'Открытый каркас под мойку.'],
+    ['bottom-25', 'b', 'ШНМ 800', 800, 850, 480, 2, 'шкаф под мойку, 2 двери', 'Открытый каркас под мойку.'],
+    ['bottom-26', 'b', 'ШНД 600', 600, 850, 480, 0, 'шкаф под духовку, 1 ящик', 'Ниша для встраиваемой духовки.'],
+    ['bottom-27', 'b', 'ШНБ 150', 150, 850, 480, 1, 'узкий шкаф-бутылочница'],
+    ['bottom-28', 'b', 'ШНТ 300 L/R', 300, 850, 560, 1, 'торцевой шкаф (левый или правый)', 'Глубина 560 мм.'],
+    ['bottom-29', 'b', 'ШН3Я 300', 300, 850, 480, 0, '3 ящика'],
+    ['bottom-30', 'b', 'ШН3Я 400', 400, 850, 480, 0, '3 ящика'],
+    ['bottom-31', 'b', 'ШН3Я 500', 500, 850, 480, 0, '3 ящика'],
+    ['bottom-32', 'b', 'ШН3Я 600', 600, 850, 480, 0, '3 ящика'],
+    ['bottom-33', 'b', 'ШН3Я 800', 800, 850, 480, 0, '3 ящика'],
+    ['bottom-34', 'b', 'ШН4Я 300', 300, 850, 480, 0, '4 ящика'],
+    ['bottom-35', 'b', 'ШН4Я 400', 400, 850, 480, 0, '4 ящика'],
+    ['bottom-36', 'b', 'ШН4Я 500', 500, 850, 480, 0, '4 ящика'],
+    ['bottom-37', 'b', 'ШН4Я 600', 600, 850, 480, 0, '4 ящика'],
+    ['bottom-38', 'b', 'ШН4Я 800', 800, 850, 480, 0, '4 ящика'],
+    ['bottom-39', 'b', 'ШНПУ 300 L/R', 300, 850, 540, 0, 'угловая открытая полка (левая или правая)', 'Глубина 540 мм.'],
+    ['top-01', 'w', 'ШВГС 500', 500, 358, 320, 1, 'горизонтальный шкаф со стеклянной дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-02', 'w', 'ШВГС 600', 600, 358, 320, 1, 'горизонтальный шкаф со стеклянной дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-03', 'w', 'ШВГС 800', 800, 358, 320, 1, 'горизонтальный шкаф со стеклянной дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-04', 'w', 'ШВГ 500', 500, 358, 320, 1, 'горизонтальный шкаф с дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-05', 'w', 'ШВГ 600', 600, 358, 320, 1, 'горизонтальный шкаф с дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-06', 'w', 'ШВГ 800', 800, 358, 320, 1, 'горизонтальный шкаф с дверью-подъёмником', 'Над вытяжкой или высокими шкафами.'],
+    ['top-07', 'w', 'ШВБ 150', 150, 720, 300, 0, 'узкий открытый шкаф с полками'],
+    ['top-08', 'w', 'ШВПУ 300', 300, 720, 300, 0, 'угловая открытая полка'],
+    ['top-09', 'w', 'ШВТ 224', 224, 720, 320, 1, 'торцевой шкаф, 1 дверь'],
+    ['top-10', 'w', 'ШВУ 590 / ШВУ 550', 592, 720, 592, 1, 'угловой верхний шкаф', 'Два исполнения: 720×592×592 и 720×550×550 мм.'],
+    ['top-11', 'w', 'ШВС 300', 300, 720, 320, 1, '1 стеклянная дверь'],
+    ['top-12', 'w', 'ШВС 400', 400, 720, 320, 1, '1 стеклянная дверь'],
+    ['top-13', 'w', 'ШВС 500', 500, 720, 320, 1, '1 стеклянная дверь'],
+    ['top-14', 'w', 'ШВС 600', 600, 720, 320, 2, '2 стеклянные двери'],
+    ['top-15', 'w', 'ШВС 800', 800, 720, 320, 2, '2 стеклянные двери'],
+    ['top-16', 'w', 'ШВС 1000', 1000, 720, 320, 2, '2 стеклянные двери'],
+    ['top-17', 'w', 'ШВУС 590 / ШВУС 550', 592, 720, 592, 1, 'угловой верхний шкаф со стеклянной дверью', 'Два исполнения: 720×592×592 и 720×550×550 мм.'],
+    ['top-18', 'w', 'ШВ 300', 300, 720, 320, 1, '1 дверь'],
+    ['top-19', 'w', 'ШВ 400', 400, 720, 320, 1, '1 дверь'],
+    ['top-20', 'w', 'ШВ 500', 500, 720, 320, 1, '1 дверь'],
+    ['top-21', 'w', 'ШВ 600', 600, 720, 320, 2, '2 двери'],
+    ['top-22', 'w', 'ШВ 600м', 600, 720, 320, 1, '1 широкая дверь'],
+    ['top-23', 'w', 'ШВ 800', 800, 720, 320, 2, '2 двери'],
+    ['top-24', 'w', 'ШВ 1000', 1000, 720, 320, 2, '2 двери'],
+    ['top-25', 'w', 'ШВ 1200', 1200, 720, 320, 2, '2 двери']
   ];
 
-  const products = () => ROWS.map(([file, t, code, w, h, d, doors, drawers, flags, kind, note], i) => {
-    const base = t === 'b';
+  const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  // known values of a product by the NAME of the field, so they fit a type that was built by hand with other field ids
+  const byLabel = (snapshot, rec) => {
+    const values = {};
+    snapshot.forEach(fl => { const k = norm(fl.label); if (k in rec && !(fl.id in values)) values[fl.id] = rec[k]; });
+    return values;
+  };
+  // typeOf: { b: type, w: type } — the types the products go into
+  const products = typeOf => ROWS.map(([file, key, code, w, h, d, doors, shape, note], i) => {
+    const t = typeOf[key], base = key === 'b';
+    const name = (base ? 'Нижний шкаф ' : 'Верхний шкаф ') + code;
     return {
       id: 'bx-' + file,
-      typeId: base ? 'tp-base' : 'tp-wall',
-      name: (base ? 'Base cabinet ' : 'Wall cabinet ') + code,
+      typeId: t.id,
+      name,
       price: '',                                   // empty = price on request
-      desc: (kind.charAt(0).toUpperCase() + kind.slice(1)) + '. Size ' + h + '×' + w + '×' + d + ' mm (height × width × depth).' + (note ? ' ' + note : ''),
+      desc: shape.charAt(0).toUpperCase() + shape.slice(1) + '. Размер ' + h + '×' + w + '×' + d + ' мм (высота × ширина × глубина).' + (note ? ' ' + note : ''),
       published: false,                            // never published automatically
       photos: ['media/boxes/' + file + '.jpg'],
-      values: { 'kb-code': code, 'kb-w': w, 'kb-h': h, 'kb-d': d, 'kb-doors': doors, 'kb-drawers': drawers, 'kb-glass': flags.includes('g'), 'kb-corner': flags.includes('c'), 'kb-mat': '', 'kb-soft': false },
+      values: byLabel(t.snapshot, { 'название продукта': name, 'код в системе': code, 'высота (мм)': h, 'ширина (мм)': w, 'глубина (мм)': d, 'двери (шт)': doors }),
       at: 1700000000000 + i,
       author: ''
     };
   });
 
-  window.KitchensCatalogueDefaults = { version: VERSION, form: FORM, types: TYPES, products };
+  window.KitchensCatalogueDefaults = { version: VERSION, types: TYPES, products, norm };
 })();
