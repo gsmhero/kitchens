@@ -23,7 +23,23 @@
   const persist = () => { if (!save('catalogue', db)) alert('Could not save: browser storage is full. Try fewer or smaller photos.'); };
 
   const seed = () => ({ types: [], products: [] });
-  const init = () => { if (!db) { db = load('catalogue', null) || seed(); save('catalogue', db); } };
+  // The default cabinets (js/catalogue-defaults.js) are added ONCE to the shared catalogue by the first person who may edit it.
+  // From then on they are ordinary products: everything can be edited or deleted, and deleted items do not come back.
+  const canEdit = () => window.KitchensRoles.level(K().getUser(), 'Product Catalogue') >= 2;
+  function applyDefaults() {
+    const D = window.KitchensCatalogueDefaults;
+    if (!D || !db || (db.seeded || []).includes(D.version) || !canEdit()) return;
+    let formId = '';
+    try { // the form of the fields (needs the right to edit forms; without it the types keep their own copy of the fields)
+      if (window.KitchensRoles.level(K().getUser(), 'Forms') >= 2) { const ex = FF().list().find(f => f.name === D.form.name); formId = ex ? ex.id : FF().create(D.form); }
+    } catch (e) { formId = ''; }
+    D.types.forEach(t => { if (!db.types.some(x => x.id === t.id)) db.types.push({ ...t, formId, snapshot: JSON.parse(JSON.stringify(D.form.fields)) }); });
+    const have = new Set(db.products.map(p => p.id));
+    D.products().forEach(p => { if (!have.has(p.id)) db.products.push(p); });
+    db.seeded = [...(db.seeded || []), D.version];
+    save('catalogue', db);
+  }
+  const init = () => { if (!db) { db = load('catalogue', null) || seed(); save('catalogue', db); } applyDefaults(); };
 
   // products as plain data for other pages (Price offers pick lines from here)
   window.KitchensCatalogue = {
@@ -218,7 +234,7 @@
       <fieldset class="loc-pick spec"><legend>Specification <small>(fields of the “${type ? esc(formOf(type) ? formOf(type).name : 'saved') : ''}” form)</small></legend>
         <div id="pcFields" class="fill">${fieldRows(type ? fieldsOf(type) : [], p ? p.values : {})}</div></fieldset>
       <div><span class="sub">Photos (max ${MAX_PHOTOS})</span><div id="pcPhotos">${photosHtml()}</div></div>
-      <label class="inline pub-check"><input type="checkbox" name="published" ${!p || p.published ? 'checked' : ''}> Published on the public catalogue</label>
+      <label class="inline pub-check"><input type="checkbox" name="published" ${p && p.published ? 'checked' : ''}> Published on the public catalogue</label>
       <button class="btn primary wide">${p ? 'Save' : 'Add product'}</button>
     </form>`;
     m.hidden = false;
