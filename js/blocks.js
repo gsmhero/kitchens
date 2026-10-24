@@ -375,7 +375,7 @@
   });
 
   const api = {
-    status: '', register: p => providers.push(p), find, sanitize, videoOf, videoHtml, sizeOf, readImage, newBlock, newBanner, isBanner, bodyHtml, publicHtml, setStatus, commitSoon, commit, MAX_GALLERY
+    status: '', register: p => providers.push(p), openLightbox: (list, i) => { lb = { b: { gallery: list }, i: Math.max(0, i || 0) }; showLightbox(); }, find, sanitize, videoOf, videoHtml, sizeOf, readImage, newBlock, newBanner, isBanner, bodyHtml, publicHtml, setStatus, commitSoon, commit, MAX_GALLERY
   };
   window.KitchensBlocks = api;
 })();

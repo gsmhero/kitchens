@@ -733,3 +733,6 @@ fieldset.spec #pcFields label.inline input{flex:none;width:auto}
 .o-attached{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
 .o-attached h4{margin:0 0 8px}
 .offer-mini{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--bg)}
+
+/* pictures on the case page open in the lightbox */
+.o-photos .ph img,.m-photos .ph img{cursor:zoom-in}

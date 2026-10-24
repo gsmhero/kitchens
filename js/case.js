@@ -392,6 +392,15 @@
     }
   });
 
+
+  /* a click on a picture of a block (offer photos, measure photos) opens it full size; arrows and the keys ← → go to the next / previous one */
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.ph img');
+    if (!img || !onCase()) return;
+    const group = img.closest('.o-photos, .m-photos') || img.closest('.ph').parentElement;
+    const imgs = [...group.querySelectorAll('.ph img')];
+    window.KitchensBlocks.openLightbox(imgs.map(x => x.getAttribute('src')), imgs.indexOf(img));
+  });
   /* value edits: saved on `change` (blur/enter) without redrawing, so typing is never interrupted */
   document.addEventListener('change', async e => {
     const t = e.target;
